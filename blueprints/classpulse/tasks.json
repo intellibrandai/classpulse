@@ -1,0 +1,772 @@
+[
+  {
+    "id": "E1-T1",
+    "title": "Clean the skeleton and add ClassPulse configuration",
+    "epic": "01-foundation-access",
+    "dependencies": [],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `docker compose exec -T app php artisan --version` runs THE SYSTEM SHALL print a line containing `Laravel Framework 13.` and exit 0.",
+      "WHEN `curl` requests `http://localhost:8090/up` THE SYSTEM SHALL return HTTP 200.",
+      "WHEN `vendor/bin/phpunit tests/Feature/EnvironmentGuardTest.php` runs in the app container THE SYSTEM SHALL assert that the connection is `mariadb`, the database is `classpulse_test`, `app.timezone` is `America/Toronto`, `classpulse.max_roster` is 30 and `classpulse.max_points` is 99, and exit 0.",
+      "WHEN the project root is listed THE SYSTEM SHALL contain no `package.json`, no `vite.config.js`, no `resources/js`, no `resources/css`, no `resources/views/welcome.blade.php` and no migration whose name contains `create_cache_table` or `create_jobs_table`.",
+      "WHEN `composer.json` is searched for `npm` or `npx` THE SYSTEM SHALL find 0 occurrences.",
+      "WHEN `vendor/bin/pint --test` runs in the app container THE SYSTEM SHALL exit 0."
+    ],
+    "verify": [
+      "docker compose exec -T app php artisan --version | grep -q 'Laravel Framework 13\\.'",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/up)\" = 200",
+      "docker compose exec -T app php artisan config:show app.timezone | grep -q 'America/Toronto'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/EnvironmentGuardTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/EnvironmentGuardTest.php | grep -q 'EnvironmentGuardTest::test_suite_uses_the_test_database_and_toronto_time'",
+      "test ! -e package.json && test ! -e vite.config.js && test ! -e resources/js && test ! -e resources/css && test ! -e resources/views/welcome.blade.php",
+      "test \"$(ls database/migrations | grep -cE 'create_(cache|jobs)_table')\" = 0",
+      "test \"$(grep -cE 'npm|npx' composer.json)\" = 0",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-01-skeleton-config",
+    "files": [
+      "config/classpulse.php",
+      "config/app.php",
+      "composer.json",
+      "routes/web.php",
+      "tests/Feature/EnvironmentGuardTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E1-T2",
+    "title": "Create the domain schema migration and its constraint tests",
+    "epic": "01-foundation-access",
+    "dependencies": ["E1-T1"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `php artisan migrate --force` runs in the app container THE SYSTEM SHALL exit 0 and `php artisan migrate:status` SHALL list the `create_classpulse_schema` migration as `Ran`.",
+      "WHEN a `participation_entries` row pairs a student with a `school_class_id` other than that student's class THE SYSTEM SHALL reject the insert with a `QueryException`.",
+      "WHEN a second `participation_entries` row is inserted for the same `school_class_id`, `student_id` and `work_date` THE SYSTEM SHALL reject it with a `QueryException`.",
+      "WHEN an entry is written with `points` 100, or with `status` `present` and `points` NULL, or a class is written with `roster_cap` 31 or with `semester_end` before `semester_start` THE SYSTEM SHALL reject the write with a `QueryException`.",
+      "WHEN a `school_classes` row is deleted THE SYSTEM SHALL cascade-delete its students, entries, operations and events, leaving 0 rows that reference it.",
+      "WHEN `database/seeders/DatabaseSeeder.php` is searched for `password` or `@example.com` THE SYSTEM SHALL find 0 occurrences."
+    ],
+    "verify": [
+      "docker compose exec -T app php artisan migrate --force",
+      "docker compose exec -T app php artisan migrate:status | grep 'create_classpulse_schema' | grep -q 'Ran'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/SchemaConstraintsTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/SchemaConstraintsTest.php | grep -q 'SchemaConstraintsTest::test_rejects_entry_for_student_of_another_class'",
+      "test \"$(grep -cE 'password|@example\\.com' database/seeders/DatabaseSeeder.php)\" = 0",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-02-domain-schema",
+    "files": [
+      "database/migrations/*_create_classpulse_schema.php",
+      "database/seeders/DatabaseSeeder.php",
+      "tests/Feature/SchemaConstraintsTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E1-T3",
+    "title": "Add the five Eloquent models",
+    "epic": "01-foundation-access",
+    "dependencies": ["E1-T2"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `php artisan model:show` runs in the app container for `SchoolClass`, `Student`, `ParticipationEntry`, `ParticipationOperation` and `ParticipationEvent` THE SYSTEM SHALL exit 0 for each and print the table name `school_classes`, `students`, `participation_entries`, `participation_operations` and `participation_events` respectively.",
+      "WHEN `php -l` runs in the app container on each of the five model files THE SYSTEM SHALL exit 0.",
+      "WHEN the five model files are searched THE SYSTEM SHALL find `protected $fillable` in every one of them and `guarded` in none of them.",
+      "WHEN `app/Models/ParticipationOperation.php` is searched THE SYSTEM SHALL find `primaryKey = 'seq';` and `UPDATED_AT = null;`.",
+      "WHEN `vendor/bin/pint --test` runs in the app container THE SYSTEM SHALL exit 0."
+    ],
+    "verify": [
+      "docker compose exec -T app php artisan model:show SchoolClass | grep -q 'school_classes'",
+      "docker compose exec -T app php artisan model:show Student | grep -q 'students'",
+      "docker compose exec -T app php artisan model:show ParticipationEntry | grep -q 'participation_entries'",
+      "docker compose exec -T app php artisan model:show ParticipationOperation | grep -q 'participation_operations'",
+      "docker compose exec -T app php artisan model:show ParticipationEvent | grep -q 'participation_events'",
+      "docker compose exec -T app php -l app/Models/SchoolClass.php",
+      "docker compose exec -T app php -l app/Models/Student.php",
+      "docker compose exec -T app php -l app/Models/ParticipationEntry.php",
+      "docker compose exec -T app php -l app/Models/ParticipationOperation.php",
+      "docker compose exec -T app php -l app/Models/ParticipationEvent.php",
+      "test \"$(grep -LF 'protected $fillable' app/Models/SchoolClass.php app/Models/Student.php app/Models/ParticipationEntry.php app/Models/ParticipationOperation.php app/Models/ParticipationEvent.php | wc -l | tr -d ' ')\" = 0",
+      "test \"$(grep -l 'guarded' app/Models/SchoolClass.php app/Models/Student.php app/Models/ParticipationEntry.php app/Models/ParticipationOperation.php app/Models/ParticipationEvent.php | wc -l | tr -d ' ')\" = 0",
+      "grep -qF \"primaryKey = 'seq';\" app/Models/ParticipationOperation.php && grep -qF 'UPDATED_AT = null;' app/Models/ParticipationOperation.php",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-03-models",
+    "files": [
+      "app/Models/SchoolClass.php",
+      "app/Models/Student.php",
+      "app/Models/ParticipationEntry.php",
+      "app/Models/ParticipationOperation.php",
+      "app/Models/ParticipationEvent.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E1-T4",
+    "title": "Add the factories and the model behaviour tests",
+    "epic": "01-foundation-access",
+    "dependencies": ["E1-T3"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `SchoolClass::factory()->create()` runs THE SYSTEM SHALL store a class whose `roster_cap` is 30 and whose `name` starts with `HNL `.",
+      "WHEN a class with `roster_cap` 30 has 3 active students and 1 archived student THE SYSTEM SHALL return 3 from `activeStudentCount()`, 27 from `remainingCapacity()` and exactly the 3 active students from `activeStudents()`.",
+      "WHEN `Student::active()` is queried THE SYSTEM SHALL exclude every student whose `archived_at` is not null, and `isArchived()` SHALL return true only for those students.",
+      "WHEN `Student::factory()->archived()->create()` runs THE SYSTEM SHALL set `archived_at` and leave `student_number` null.",
+      "WHEN `ParticipationEntry::factory()->create()` runs THE SYSTEM SHALL store an entry with status `present`, 0 points and a student that belongs to the entry's class.",
+      "WHEN a `ParticipationOperation` is created through the model THE SYSTEM SHALL assign it an integer `seq` key and set `created_at` without writing an `updated_at` column."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/ModelsTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/ModelsTest.php | grep -q 'ModelsTest::test_active_student_count_and_remaining_capacity'",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-04-factories",
+    "files": [
+      "database/factories/SchoolClassFactory.php",
+      "database/factories/StudentFactory.php",
+      "database/factories/ParticipationEntryFactory.php",
+      "tests/Feature/ModelsTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E1-T5",
+    "title": "Add the teacher account commands",
+    "epic": "01-foundation-access",
+    "dependencies": ["E1-T1"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `classpulse:create-teacher teacher@classpulse.test --name=Teacher` runs on an empty `users` table and the password prompt and its confirmation receive the same value of 12 or more characters THE SYSTEM SHALL create exactly 1 user whose password verifies with `Hash::check` and exit 0.",
+      "WHEN `classpulse:create-teacher` runs while any user exists, or the password is shorter than 12 characters, or the confirmation differs THE SYSTEM SHALL exit 1 and leave the `users` row count unchanged.",
+      "WHEN `classpulse:reset-password teacher@classpulse.test` completes THE SYSTEM SHALL store a hash that verifies the new password and leave 0 rows in `sessions`, and for an unknown email it SHALL exit 1.",
+      "WHEN `classpulse:hash` receives a password THE SYSTEM SHALL print a bcrypt hash containing `$2y$` and SHALL NOT print the password text."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/TeacherCommandsTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/TeacherCommandsTest.php | grep -q 'TeacherCommandsTest::test_create_teacher_creates_exactly_one_user'",
+      "docker compose exec -T app php artisan list classpulse > /tmp/classpulse-commands.txt && grep -q 'classpulse:create-teacher' /tmp/classpulse-commands.txt && grep -q 'classpulse:reset-password' /tmp/classpulse-commands.txt && grep -q 'classpulse:hash' /tmp/classpulse-commands.txt",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-05-teacher-commands",
+    "files": [
+      "app/Console/Commands/CreateTeacherCommand.php",
+      "app/Console/Commands/ResetPasswordCommand.php",
+      "app/Console/Commands/HashPasswordCommand.php",
+      "tests/Feature/TeacherCommandsTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E1-T6",
+    "title": "Add the global security headers middleware",
+    "epic": "01-foundation-access",
+    "dependencies": ["E1-T1"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN any response is served over plain HTTP THE SYSTEM SHALL carry `Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` and `Permissions-Policy: camera=(), microphone=(), geolocation=()`, and no `Strict-Transport-Security` header.",
+      "WHEN a response is served over HTTPS THE SYSTEM SHALL add `Strict-Transport-Security: max-age=31536000`.",
+      "WHEN `curl -sI http://localhost:8090/up` runs against the live server THE SYSTEM SHALL receive an `X-Content-Type-Options: nosniff` header and a `Content-Security-Policy` header starting with `default-src 'self'`."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/SecurityHeadersTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/SecurityHeadersTest.php | grep -q 'SecurityHeadersTest::test_http_response_carries_csp_and_no_hsts'",
+      "curl -sI http://localhost:8090/up | grep -qi '^x-content-type-options: nosniff'",
+      "curl -sI http://localhost:8090/up | grep -qi \"^content-security-policy: default-src 'self'\"",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-06-security-headers",
+    "files": [
+      "app/Http/Middleware/SecurityHeaders.php",
+      "bootstrap/app.php",
+      "tests/Feature/SecurityHeadersTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E1-T7",
+    "title": "Add login, logout, throttling and route protection",
+    "epic": "01-foundation-access",
+    "dependencies": ["E1-T4", "E1-T5", "E1-T6"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN a guest requests `/` THE SYSTEM SHALL redirect to `/login`, and `/login` SHALL return 200 with an email field, a password field and the `Content-Security-Policy` header.",
+      "WHEN valid credentials are posted to `/login` THE SYSTEM SHALL authenticate the teacher, regenerate the session id and redirect to `/daily`.",
+      "WHEN an invalid password is posted to `/login` THE SYSTEM SHALL redirect back with the error `These credentials do not match our records.` and remain a guest.",
+      "WHEN a 6th login attempt for the same email and IP arrives within one minute THE SYSTEM SHALL respond 429 with a `Retry-After` header.",
+      "WHEN an authenticated teacher posts to `/logout` THE SYSTEM SHALL end the session, rotate the CSRF token and redirect to `/login`, and every authenticated response SHALL carry a `Cache-Control` header containing `no-store`.",
+      "WHEN `/register`, `/forgot-password` or `/reset-password/abc` is requested THE SYSTEM SHALL return 404."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/AuthTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/AuthTest.php | grep -q 'AuthTest::test_sixth_attempt_is_throttled'",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/login)\" = 200",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/)\" = 302",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/register)\" = 404",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-07-login",
+    "files": [
+      "app/Http/Controllers/Auth/LoginController.php",
+      "resources/views/auth/login.blade.php",
+      "routes/web.php",
+      "app/Providers/AppServiceProvider.php",
+      "tests/Feature/AuthTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E1-T8",
+    "title": "Write the design tokens, component CSS and theme scripts",
+    "epic": "01-foundation-access",
+    "dependencies": ["E1-T7"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `curl` requests `http://localhost:8090/css/tokens.css`, `/css/app.css`, `/js/theme-init.js` and `/js/theme.js` THE SYSTEM SHALL return HTTP 200 for each.",
+      "WHEN `node --check` runs in the `jstest` container on `public/js/theme-init.js` and `public/js/theme.js` THE SYSTEM SHALL exit 0 for each.",
+      "WHEN `public/css/tokens.css` is read THE SYSTEM SHALL contain `[data-theme=\"dark\"]`, `:root:not([data-theme=\"light\"])` and `prefers-color-scheme: dark`.",
+      "WHEN `public/css/app.css` is searched THE SYSTEM SHALL find 0 `#` characters (no raw hex colour and no id selector) and SHALL find `prefers-reduced-motion: reduce`.",
+      "WHEN `public/js/theme-init.js` and `public/js/theme.js` are read THE SYSTEM SHALL find the key `classpulse-theme` in both and no line starting with `import ` or `export ` in either."
+    ],
+    "verify": [
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/css/tokens.css)\" = 200",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/css/app.css)\" = 200",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/js/theme-init.js)\" = 200",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/js/theme.js)\" = 200",
+      "docker compose --profile test run --rm jstest node --check public/js/theme-init.js",
+      "docker compose --profile test run --rm jstest node --check public/js/theme.js",
+      "grep -qF '[data-theme=\"dark\"]' public/css/tokens.css && grep -qF ':root:not([data-theme=\"light\"])' public/css/tokens.css && grep -qF 'prefers-color-scheme: dark' public/css/tokens.css",
+      "test \"$(grep -c '#' public/css/app.css)\" = 0 && grep -qF 'prefers-reduced-motion: reduce' public/css/app.css",
+      "grep -qF 'classpulse-theme' public/js/theme-init.js && grep -qF 'classpulse-theme' public/js/theme.js",
+      "test -z \"$(grep -hcE '^(import|export) ' public/js/theme-init.js public/js/theme.js | grep -v '^0$')\""
+    ],
+    "checkpoint": "step-08-design-assets",
+    "files": [
+      "public/css/tokens.css",
+      "public/css/app.css",
+      "public/js/theme-init.js",
+      "public/js/theme.js"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E1-T9",
+    "title": "Build the app layout shell and the current-class resolver",
+    "epic": "01-foundation-access",
+    "dependencies": ["E1-T8"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN the `x-layouts.app` component renders for an authenticated teacher THE SYSTEM SHALL output the nav tabs `Daily Tracker`, `Weekly Matrix`, `Semester Analytics` and `Class Roster & Settings`, a theme toggle button with an accessible name, and a skip link to `#main`.",
+      "WHEN the layout renders THE SYSTEM SHALL load `/js/theme-init.js` in `<head>` without `defer` or `async`, before the `/css/tokens.css` and `/css/app.css` stylesheets.",
+      "WHEN three classes exist and `CurrentClass::resolve` receives a valid class id THE SYSTEM SHALL return that class and store its id in the session, with no id it SHALL return the session's class, with a stale id it SHALL fall back to the first class by name, and with no classes it SHALL return null.",
+      "WHEN `LayoutShellTest` scans every file under `resources/views` THE SYSTEM SHALL find 0 occurrences of `style=`, `<style`, a `<script>` tag without `src`, an `on*=` event attribute, `{!!` or `@vite`.",
+      "WHEN `LayoutShellTest` reads `public/css/tokens.css` THE SYSTEM SHALL find every hex value of the ClassPulse palette listed in the step 9 token list, compared case-insensitively."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/LayoutShellTest.php | grep -q 'LayoutShellTest::test_views_contain_no_inline_script_or_style'",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-09-layout-shell",
+    "files": [
+      "resources/views/components/layouts/app.blade.php",
+      "app/Support/CurrentClass.php",
+      "tests/Feature/LayoutShellTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T1",
+    "title": "Add class create and edit",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E1-T9"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN a teacher posts a valid class with `name`, `subject_description`, `period_label`, `roster_cap` between 1 and 30 and optional semester dates to `/classes` THE SYSTEM SHALL create 1 `school_classes` row and redirect to `/roster?class=` followed by its id.",
+      "WHEN the posted `name` duplicates an existing class, `roster_cap` is 0 or 31, or `semester_end` precedes `semester_start` THE SYSTEM SHALL return a validation error for that field and create 0 rows.",
+      "WHEN a teacher sends changed fields with `PUT /classes/{class}` THE SYSTEM SHALL update that row and keep its id.",
+      "WHEN `PUT /classes/{class}` sets `roster_cap` below that class's active student count THE SYSTEM SHALL return a `roster_cap` validation error and keep the stored cap.",
+      "WHEN a guest posts to `/classes` or sends `PUT /classes/{class}` THE SYSTEM SHALL redirect to `/login` and change nothing."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/ClassManagementTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/ClassManagementTest.php | grep -q 'ClassManagementTest::test_teacher_creates_a_class'",
+      "docker compose exec -T app php artisan route:list --path=classes > /tmp/classpulse-routes.txt && grep -q 'ClassController@store' /tmp/classpulse-routes.txt && grep -q 'ClassController@update' /tmp/classpulse-routes.txt",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-10-classes",
+    "files": [
+      "app/Http/Controllers/ClassController.php",
+      "app/Http/Requests/StoreClassRequest.php",
+      "app/Http/Requests/UpdateClassRequest.php",
+      "routes/web.php",
+      "tests/Feature/ClassManagementTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T2",
+    "title": "Add the Roster & Settings page and class deletion",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E2-T1"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `DELETE /classes/{class}` arrives with a `confirm_name` different from the class name THE SYSTEM SHALL keep the class and return a `confirm_name` error, and with the exact name it SHALL delete the class and every student, entry, operation and event of it.",
+      "WHEN `/roster` is requested with no classes THE SYSTEM SHALL show `Create your first class`, and for an existing class it SHALL show a delete confirmation naming the class and its student and entry counts.",
+      "WHEN `/roster?class=` with a class id renders THE SYSTEM SHALL show a `Create New Course / Section` form with labelled fields `Official course code`, `Subject description`, `Period / Block`, `Target roster cap`, `Semester start` and `Semester end`.",
+      "WHEN a guest requests `/roster` or sends `DELETE /classes/{class}` THE SYSTEM SHALL redirect to `/login` and delete nothing."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/RosterPageTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/RosterPageTest.php | grep -q 'RosterPageTest::test_delete_requires_the_exact_class_name'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/roster)\" = 302",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-11-roster-page",
+    "files": [
+      "app/Http/Controllers/ClassController.php",
+      "app/Http/Requests/DestroyClassRequest.php",
+      "resources/views/roster/index.blade.php",
+      "routes/web.php",
+      "tests/Feature/RosterPageTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T3",
+    "title": "Manage the student roster with the cap",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E2-T2"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN a teacher posts a `display_name` of 1 to 120 characters and an optional `student_number` to `/classes/{class}/students` THE SYSTEM SHALL create 1 active student in that class.",
+      "WHEN a class with `roster_cap` 30 already has 30 active students THE SYSTEM SHALL reject another add and a restore with the error `This class already has 30 active students (cap 30).` and keep 30 active students.",
+      "WHEN `/students/{student}/archive` is posted THE SYSTEM SHALL set `archived_at` and keep every entry of that student, and `/students/{student}/restore` SHALL clear it while the class is under its cap.",
+      "WHEN `PUT /students/{student}` renames a student THE SYSTEM SHALL keep the same `id`.",
+      "WHEN `/roster?class=` with a class id renders THE SYSTEM SHALL list active and archived students in separate tables, and a class with 0 students SHALL show `Add students or import a CSV`.",
+      "WHEN a student route receives an id that does not exist THE SYSTEM SHALL return 404."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/StudentRosterTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/StudentRosterTest.php | grep -q 'StudentRosterTest::test_cap_blocks_the_31st_active_student'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-12-students",
+    "files": [
+      "app/Http/Controllers/StudentController.php",
+      "app/Http/Requests/StudentRequest.php",
+      "resources/views/roster/index.blade.php",
+      "routes/web.php",
+      "tests/Feature/StudentRosterTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T4",
+    "title": "Add SchoolCalendar and ParticipationStats",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E2-T3"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN the clock is `2026-10-21 23:30` America/Toronto THE SYSTEM SHALL return `2026-10-21` from `SchoolCalendar::today()`, and at `2026-10-22 00:30` America/Toronto it SHALL return `2026-10-22`.",
+      "WHEN `previousWeekday('2026-03-09')`, `nextWeekday('2026-10-23')` and `previousWeekday('2026-11-02')` are called THE SYSTEM SHALL return `2026-03-06`, `2026-10-26` and `2026-10-30`.",
+      "WHEN `isWeekday('2026-10-24')` and `weekStart('2026-10-21')` are called THE SYSTEM SHALL return false and `2026-10-19`, and `weekDays('2026-10-19')` SHALL return the five dates `2026-10-19` to `2026-10-23`.",
+      "WHEN a student has present rows with 3, 0 and 5 points, one absent row and one not-recorded day THE SYSTEM SHALL report total_points 8, present_days_recorded 3, absences 1, days_recorded 4, participation_days 2 and an average that formats as `2.67`.",
+      "WHEN a student has 0 present days recorded in the period THE SYSTEM SHALL format the average as `No data`, never `0.00`.",
+      "WHEN week 1 has one present day with 10 points and week 2 has four present days with 1 point each THE SYSTEM SHALL return a period average of 2.8 (14 / 5) rather than the 5.5 mean of weekly averages, and weekly buckets SHALL be clipped to the period bounds."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Unit/SchoolCalendarTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Unit/SchoolCalendarTest.php | grep -q 'SchoolCalendarTest::test_today_uses_toronto_midnight'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Unit/ParticipationStatsTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Unit/ParticipationStatsTest.php | grep -q 'ParticipationStatsTest::test_semester_average_is_not_the_mean_of_weekly_averages'",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-13-calendar-stats",
+    "files": [
+      "app/Support/SchoolCalendar.php",
+      "app/Support/ParticipationStats.php",
+      "app/Providers/AppServiceProvider.php",
+      "tests/Unit/SchoolCalendarTest.php",
+      "tests/Unit/ParticipationStatsTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T5",
+    "title": "Implement single-student participation operations",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E2-T4"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `increment` is applied THE SYSTEM SHALL turn no row into present with 1 point and present n into n+1, and SHALL raise `points_max` (422) at 99 points and `student_absent` (409) for an absent student.",
+      "WHEN `decrement` is applied THE SYSTEM SHALL lower present n above 0 by 1, and SHALL raise `points_min` (422) at 0, `not_recorded` (422) when no row exists and `student_absent` (409) when the student is absent.",
+      "WHEN `set_zero`, `absent_on` and `absent_off` are applied THE SYSTEM SHALL record present 0 only on a day with no row (otherwise `already_recorded` 409), remember the points held before an absence and restore them on `absent_off`, and delete the row on `absent_off` when nothing was recorded before the absence.",
+      "WHEN 50 `increment` operations with 50 distinct `op_id` values are applied to one student THE SYSTEM SHALL store 50 points and 50 `participation_operations` rows.",
+      "WHEN an `op_id` that already exists is applied again THE SYSTEM SHALL change no row and return the day state with `replayed` true.",
+      "WHEN any operation runs THE SYSTEM SHALL lock the `school_classes` row with a `for update` query before its first write, and SHALL raise `not_found` (404) for a student of another class, `student_archived` (422) for an archived student, `weekend` (422) for a Saturday or Sunday and `future_date` (422) for a date after today in America/Toronto."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/ParticipationServiceTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/ParticipationServiceTest.php | grep -q 'ParticipationServiceTest::test_absent_off_restores_remembered_points'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/ParticipationIdempotencyTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/ParticipationIdempotencyTest.php | grep -q 'ParticipationIdempotencyTest::test_fifty_distinct_op_ids_store_fifty_points'",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-14-participation-service",
+    "files": [
+      "app/Services/ParticipationService.php",
+      "app/Exceptions/ParticipationException.php",
+      "tests/Feature/ParticipationServiceTest.php",
+      "tests/Feature/ParticipationIdempotencyTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T6",
+    "title": "Add batch operations, undo and the demo seed",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E2-T5"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `zero_remaining` is applied THE SYSTEM SHALL record present 0 for every active student without a row that day, leave absent, recorded and archived students untouched, and raise `nothing_to_do` (422) when no student qualifies.",
+      "WHEN `reset_day` is applied THE SYSTEM SHALL delete every entry of that class and date only, and raise `nothing_to_do` (422) when there are none.",
+      "WHEN `undo` is applied repeatedly THE SYSTEM SHALL revert the most recent not-undone operation of that class and date each time, restoring the exact prior status, points and restore_points, and raise `nothing_to_undo` (409) when none remain.",
+      "WHEN the undone operation was `zero_remaining`, `reset_day` or `absent_on` THE SYSTEM SHALL restore every affected student to the state before that operation as one batch.",
+      "WHEN `classpulse:demo-seed` runs outside `APP_ENV=local` THE SYSTEM SHALL exit 1 and write 0 rows.",
+      "WHEN `classpulse:demo-seed --days=2` runs with `APP_ENV=local` on an empty database THE SYSTEM SHALL create 3 classes with invented student names, at least one `participation_operations` row for every seeded class and day, and the user `teacher@classpulse.test`, print its random password once and exit 0."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/ParticipationBatchUndoTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/ParticipationBatchUndoTest.php | grep -q 'ParticipationBatchUndoTest::test_undo_restores_reset_day_as_one_batch'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/DemoSeedTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/DemoSeedTest.php | grep -q 'DemoSeedTest::test_refuses_outside_local'",
+      "docker compose exec -T app php artisan list classpulse | grep -q 'classpulse:demo-seed'",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-15-batch-undo",
+    "files": [
+      "app/Services/ParticipationService.php",
+      "tests/Feature/ParticipationBatchUndoTest.php",
+      "app/Console/Commands/DemoSeedCommand.php",
+      "tests/Feature/DemoSeedTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T7",
+    "title": "Expose the daily JSON API",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E2-T6"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN an authenticated teacher requests `GET /api/classes/{class}/days/{date}` THE SYSTEM SHALL return 200 with `data.day_version`, one `data.entries` item per active student, `data.summary`, `data.can_undo` and `data.replayed` false.",
+      "WHEN a valid operation is posted to `/api/classes/{class}/days/{date}/operations` THE SYSTEM SHALL return 200 with the updated entry and a `day_version` greater than before, and the same `op_id` posted again SHALL return 200 with `replayed` true and unchanged points.",
+      "WHEN an operation fails a business rule THE SYSTEM SHALL return the mapped status with a body whose `error` object carries `code`, `message` and `day`, for example 422 `points_min` and 409 `student_absent`.",
+      "WHEN the date is a Saturday, after today or not a real calendar date, or `kind` is unknown, or `student_id` is missing for a per-student kind THE SYSTEM SHALL return 422 with code `weekend`, `future_date` or `validation`.",
+      "WHEN `student_id` belongs to another class or `{class}` does not exist THE SYSTEM SHALL return 404 with code `not_found`.",
+      "WHEN an unauthenticated JSON request reaches an `/api` route THE SYSTEM SHALL return 401 with code `unauthenticated`, and a `TokenMismatchException` on an `/api` route SHALL render as 419 with code `csrf_mismatch`."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/DayApiTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/DayApiTest.php | grep -q 'DayApiTest::test_replayed_op_id_changes_nothing'",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' http://localhost:8090/api/classes/1/days/2026-10-21)\" = 401",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-16-day-api",
+    "files": [
+      "app/Http/Controllers/Api/DayController.php",
+      "app/Http/Requests/DayOperationRequest.php",
+      "routes/web.php",
+      "bootstrap/app.php",
+      "tests/Feature/DayApiTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T8",
+    "title": "Render the Daily Tracker page",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E2-T7"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `/daily` renders for a class on `2026-10-21` at `2026-10-21 10:00` America/Toronto THE SYSTEM SHALL output one card with a `data-student-id` attribute per active student, none for archived students, and the date text `Wednesday, Oct 21, 2026`.",
+      "WHEN a card is not recorded, present with 0, present with points, or absent THE SYSTEM SHALL show the text `Not recorded` with a `Record 0` button, `Present · 0`, `Present`, or `Absent` with both point buttons `disabled`.",
+      "WHEN the requested date is Saturday `2026-10-24` THE SYSTEM SHALL redirect to `date=2026-10-23`, and a date after today SHALL redirect to today.",
+      "WHEN the page shows Monday `2026-10-19` THE SYSTEM SHALL link `Previous school day` to `2026-10-16`, and when it shows today it SHALL render `Next school day` as a disabled button with no link.",
+      "WHEN a card renders for `Alex Rivera` THE SYSTEM SHALL label its buttons `Add one point to Alex Rivera`, `Remove one point from Alex Rivera` and `Mark Alex Rivera absent`, render the save status pill with `aria-live=polite`, and render the summary line as `1 recorded · 1 absent · 1 not recorded · 3 pts` for one present student with 3 points, one absent student and one not-recorded student.",
+      "WHEN no class exists or the selected class has 0 active students THE SYSTEM SHALL show `Create your first class` or `Add students or import a CSV`."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/DailyPageTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/DailyPageTest.php | grep -q 'DailyPageTest::test_absent_card_disables_point_buttons'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/daily)\" = 302",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-17-daily-page",
+    "files": [
+      "app/Http/Controllers/DailyController.php",
+      "resources/views/daily/index.blade.php",
+      "resources/views/daily/card.blade.php",
+      "routes/web.php",
+      "tests/Feature/DailyPageTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E2-T9",
+    "title": "Add the save queue and wire the Daily page",
+    "epic": "02-roster-daily-tracking",
+    "dependencies": ["E2-T8"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN 10 actions are enqueued before any response arrives THE SYSTEM SHALL call `send` one operation at a time, in enqueue order, with 10 distinct UUID v4 `op_id` values.",
+      "WHEN `send` rejects, times out or returns 500 THE SYSTEM SHALL keep that operation and every later one pending, report state `failed`, and on `retry()` resend the same `op_id`.",
+      "WHEN a 409 or 422 response arrives THE SYSTEM SHALL drop that operation, apply the `day` state carried in the error, expose the error message and send the next operation.",
+      "WHEN a response carries a `day_version` lower than the highest already applied THE SYSTEM SHALL not apply it, report state `saved` only after a 2xx response leaves the queue empty, return true from `shouldWarnBeforeUnload` while operations are pending, and set state `expired` on a 401 or 419 response while keeping every pending operation.",
+      "WHEN `node --check` runs in the `jstest` container on `public/js/save-queue.js`, `public/js/dialogs.js` and `public/js/daily.js` THE SYSTEM SHALL exit 0 for each, and the Daily page view SHALL reference all three as external scripts that return HTTP 200.",
+      "WHEN `public/js/daily.js` is compared with the Daily views THE SYSTEM SHALL find the `CARD_ACTIONS` list of `increment`, `decrement`, `set_zero`, `absent_on` and `absent_off` in `daily.js`, each of those values as a `data-action` attribute in `resources/views/daily/card.blade.php`, no other `data-action` value in the Daily views, and the ids `save-pill`, `undo-btn`, `reset-dialog`, `zero-dialog`, `student-search` and `search-count` in both `daily.js` and `resources/views/daily/index.blade.php`."
+    ],
+    "verify": [
+      "docker compose --profile test run --rm jstest > /tmp/classpulse-jstest.txt && grep -qE '(ℹ|#) pass [1-9]' /tmp/classpulse-jstest.txt && grep -qE '(ℹ|#) fail 0' /tmp/classpulse-jstest.txt",
+      "docker compose --profile test run --rm jstest node --check public/js/save-queue.js",
+      "docker compose --profile test run --rm jstest node --check public/js/dialogs.js",
+      "docker compose --profile test run --rm jstest node --check public/js/daily.js",
+      "grep -q 'js/save-queue.js' resources/views/daily/index.blade.php",
+      "grep -q 'js/dialogs.js' resources/views/daily/index.blade.php",
+      "grep -q 'js/daily.js' resources/views/daily/index.blade.php",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/js/save-queue.js)\" = 200",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/js/dialogs.js)\" = 200",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/js/daily.js)\" = 200",
+      "grep -qF \"const CARD_ACTIONS = ['increment', 'decrement', 'set_zero', 'absent_on', 'absent_off'];\" public/js/daily.js",
+      "grep -qF 'data-action=\"increment\"' resources/views/daily/card.blade.php && grep -qF 'data-action=\"decrement\"' resources/views/daily/card.blade.php && grep -qF 'data-action=\"set_zero\"' resources/views/daily/card.blade.php && grep -qF 'data-action=\"absent_on\"' resources/views/daily/card.blade.php && grep -qF 'data-action=\"absent_off\"' resources/views/daily/card.blade.php",
+      "test \"$(grep -ohE 'data-action=\"[a-z_]+\"' resources/views/daily/index.blade.php resources/views/daily/card.blade.php | grep -cvE 'data-action=\"(increment|decrement|set_zero|absent_on|absent_off)\"')\" = 0",
+      "grep -qF 'save-pill' public/js/daily.js && grep -qF 'undo-btn' public/js/daily.js && grep -qF 'reset-dialog' public/js/daily.js && grep -qF 'zero-dialog' public/js/daily.js && grep -qF 'student-search' public/js/daily.js && grep -qF 'search-count' public/js/daily.js",
+      "grep -qF 'id=\"save-pill\"' resources/views/daily/index.blade.php && grep -qF 'id=\"undo-btn\"' resources/views/daily/index.blade.php && grep -qF 'id=\"reset-dialog\"' resources/views/daily/index.blade.php && grep -qF 'id=\"zero-dialog\"' resources/views/daily/index.blade.php && grep -qF 'id=\"student-search\"' resources/views/daily/index.blade.php && grep -qF 'id=\"search-count\"' resources/views/daily/index.blade.php",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/DailyPageTest.php",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php"
+    ],
+    "checkpoint": "step-18-save-queue",
+    "files": [
+      "public/js/save-queue.js",
+      "public/js/daily.js",
+      "public/js/dialogs.js",
+      "tests/js/save-queue.test.js",
+      "resources/views/daily/index.blade.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E3-T1",
+    "title": "Add the Weekly Matrix and safe CSV export",
+    "epic": "03-reports-import-release",
+    "dependencies": ["E2-T9"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `/weekly` renders for a class and week `2026-10-19` THE SYSTEM SHALL show one row per active student plus each archived student with entries that week suffixed `(archived)`, and each day cell SHALL show its points, `A` or `—` as text with a heat class.",
+      "WHEN the `week` parameter is not a Monday THE SYSTEM SHALL redirect to the Monday of that week.",
+      "WHEN `GET /export/weekly.csv` runs for week `2026-10-19` on the step 19 fixture data at `2026-10-26 10:00` America/Toronto THE SYSTEM SHALL return a body byte-identical to `tests/Fixtures/weekly-export.csv` with `Content-Type: text/csv; charset=UTF-8`.",
+      "WHEN that export is downloaded THE SYSTEM SHALL name it `classpulse-weekly-HNL-2O-2026-10-19-exported-2026-10-26.csv` in `Content-Disposition`.",
+      "WHEN `CsvWriter` writes a text cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return THE SYSTEM SHALL prefix it with a single quote, quote every text cell and double embedded double quotes.",
+      "WHEN a guest requests `/weekly` or `/export/weekly.csv` THE SYSTEM SHALL redirect to `/login`."
+    ],
+    "verify": [
+      "test -f tests/Fixtures/weekly-export.csv",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/WeeklyReportTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/WeeklyReportTest.php | grep -q 'WeeklyReportTest::test_weekly_csv_matches_fixture_byte_for_byte'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/weekly)\" = 302",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-19-weekly",
+    "files": [
+      "app/Support/CsvWriter.php",
+      "app/Http/Controllers/WeeklyController.php",
+      "resources/views/reports/weekly.blade.php",
+      "routes/web.php",
+      "tests/Feature/WeeklyReportTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E3-T2",
+    "title": "Add Semester Analytics and the semester export",
+    "epic": "03-reports-import-release",
+    "dependencies": ["E3-T1"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `/semester` renders for a class with semester dates `2026-09-08` to `2027-01-29` at `2026-10-26 10:00` America/Toronto THE SYSTEM SHALL list every active student and every archived student with entries in the period with total points, present days recorded, absences, days recorded, participation days and the average over the whole period.",
+      "WHEN a student has 0 present days recorded in the period THE SYSTEM SHALL show `No data` as the average, and a class with no entries SHALL show the `No data` empty state.",
+      "WHEN `/export/semester.csv` is requested THE SYSTEM SHALL return a first line whose quoted cells are `Student`, `Student number`, `Total points`, `Present days recorded`, `Absences`, `Days recorded`, `Participation days` and `Average per present day`, then one line per listed student, with a null `student_number` written as `\"\"`.",
+      "WHEN the semester export of class `HNL 2O` is downloaded at `2026-10-26 10:00` America/Toronto THE SYSTEM SHALL name it `classpulse-semester-HNL-2O-2026-09-08-to-2026-10-26-exported-2026-10-26.csv` in `Content-Disposition`.",
+      "WHEN a guest requests `/semester` or `/export/semester.csv` THE SYSTEM SHALL redirect to `/login`."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/SemesterReportTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/SemesterReportTest.php | grep -q 'SemesterReportTest::test_semester_csv_header_and_empty_student_number'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/semester)\" = 302",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-20-semester",
+    "files": [
+      "app/Http/Controllers/SemesterController.php",
+      "resources/views/reports/semester.blade.php",
+      "routes/web.php",
+      "tests/Feature/SemesterReportTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E3-T3",
+    "title": "Add the student history page and its export",
+    "epic": "03-reports-import-release",
+    "dependencies": ["E3-T2"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `/students/{student}` renders for a student of a class with semester dates `2026-09-08` to `2027-01-29` at `2026-10-26 10:00` America/Toronto THE SYSTEM SHALL list each recorded date in the period with its status and points plus a subtotal per Monday-to-Friday week.",
+      "WHEN `/export/student/{student}.csv` is requested THE SYSTEM SHALL return the quoted header cells `Date`, `Weekday`, `Status` and `Points`, then one line per recorded date such as `\"2026-10-19\",\"Monday\",\"Present\",3`, with an empty points cell on absent rows.",
+      "WHEN the export of `Alex Rivera` in class `HNL 2O` is downloaded at `2026-10-26 10:00` America/Toronto THE SYSTEM SHALL name it `classpulse-student-HNL-2O-Alex-Rivera-2026-09-08-to-2026-10-26-exported-2026-10-26.csv` in `Content-Disposition`.",
+      "WHEN `/students/{student}` or `/export/student/{student}.csv` receives an id that does not exist THE SYSTEM SHALL return 404.",
+      "WHEN a guest requests `/students/{student}` or `/export/student/{student}.csv` THE SYSTEM SHALL redirect to `/login`."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/StudentHistoryTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/StudentHistoryTest.php | grep -q 'StudentHistoryTest::test_student_csv_lists_each_recorded_date'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/students/1)\" = 302",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-21-student-history",
+    "files": [
+      "app/Http/Controllers/StudentHistoryController.php",
+      "resources/views/reports/student.blade.php",
+      "routes/web.php",
+      "tests/Feature/StudentHistoryTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E3-T4",
+    "title": "Add the roster import service with preview and commit",
+    "epic": "03-reports-import-release",
+    "dependencies": ["E3-T3"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `RosterImporter::preview()` receives a UTF-8 file with a BOM, the `;` delimiter and the header `first_name;last_name;student_number` THE SYSTEM SHALL return every row with the joined name, its student number and status `OK`.",
+      "WHEN a row matches an existing student of that class by normalized name or by `student_number`, or repeats an earlier row THE SYSTEM SHALL mark it `WARNING`.",
+      "WHEN a row has an empty name, a name longer than 120 characters, or would exceed the class roster cap THE SYSTEM SHALL mark it `ERROR`.",
+      "WHEN `RosterImporter::commit()` receives the preview token and selected row numbers THE SYSTEM SHALL create exactly the selected `OK` and `WARNING` rows in one transaction and never an `ERROR` row, and an unknown token SHALL raise a `ValidationException` and create 0 students.",
+      "WHEN pasted names, one per line, are previewed THE SYSTEM SHALL treat each non-empty line as one row, and a file over 256 KB or with an extension other than `.csv` or `.txt` SHALL raise a `ValidationException`.",
+      "WHEN the roster cap is reached between preview and commit THE SYSTEM SHALL create 0 students and raise a `ValidationException` on the key `roster_cap`."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/RosterImporterTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/RosterImporterTest.php | grep -q 'RosterImporterTest::test_bom_semicolon_file_previews_joined_names_as_ok'",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-22-roster-importer",
+    "files": [
+      "app/Services/RosterImporter.php",
+      "tests/Feature/RosterImporterTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E3-T5",
+    "title": "Add the import pages",
+    "epic": "03-reports-import-release",
+    "dependencies": ["E3-T4"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN an authenticated teacher requests `/classes/{class}/import` THE SYSTEM SHALL return 200 with a file input accepting `.csv,.txt` and a `Paste names, one per line` text area.",
+      "WHEN a file is posted to `/classes/{class}/import/preview` THE SYSTEM SHALL render one table row per data row with its status as text, `OK` rows checked, `WARNING` rows unchecked, `ERROR` rows disabled and a hidden `token` field.",
+      "WHEN the preview token and selected row numbers are posted to `/classes/{class}/import/commit` THE SYSTEM SHALL create the selected students and redirect to `/roster?class=` followed by the class id.",
+      "WHEN `/classes/{class}/import/commit` receives an unknown token THE SYSTEM SHALL redirect back with a `token` error and create 0 students, and a preview whose rows are all `ERROR` SHALL show `No valid rows to import.`",
+      "WHEN a guest requests `/classes/{class}/import` or posts to either import endpoint THE SYSTEM SHALL redirect to `/login` and create nothing."
+    ],
+    "verify": [
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/ImportTest.php",
+      "docker compose exec -T app vendor/bin/phpunit --list-tests tests/Feature/ImportTest.php | grep -q 'ImportTest::test_preview_page_sets_checkbox_states'",
+      "docker compose exec -T app vendor/bin/phpunit tests/Feature/LayoutShellTest.php",
+      "test \"$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/classes/1/import)\" = 302",
+      "docker compose exec -T app vendor/bin/pint --test"
+    ],
+    "checkpoint": "step-23-import-pages",
+    "files": [
+      "app/Http/Controllers/ImportController.php",
+      "resources/views/import/index.blade.php",
+      "resources/views/import/preview.blade.php",
+      "routes/web.php",
+      "tests/Feature/ImportTest.php"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E3-T6",
+    "title": "Package and verify the Hostinger release",
+    "epic": "03-reports-import-release",
+    "dependencies": ["E3-T5"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `./scripts/package-release.sh` runs THE SYSTEM SHALL exit 0 and create `dist/classpulse-app.zip`, `dist/classpulse-public_html.zip` and `dist/install.sql`.",
+      "WHEN the packaged `public_html/index.php` is inspected THE SYSTEM SHALL contain exactly 3 references to `/../classpulse-app/`, one for each `__DIR__.'/../` line (maintenance, autoload, bootstrap) of skeleton 13.10.1's `public/index.php`.",
+      "WHEN `./scripts/verify-release.sh` lists the app zip THE SYSTEM SHALL find no `.env` file, no `phpunit.xml` or `phpunit/` path, no `tests/` directory and no `blueprints/` directory.",
+      "WHEN `dist/install.sql` is imported into the scratch database `classpulse_verify` THE SYSTEM SHALL show at least one migration as `Ran` and none as `Pending` in `migrate:status`, and the dump SHALL contain 0 `INSERT INTO` statements for `users`.",
+      "WHEN the unpacked release is served by `php -S` on port 8001 inside the app container THE SYSTEM SHALL answer `/up` and `/login` with HTTP 200.",
+      "WHEN `./scripts/verify-release.sh` finishes THE SYSTEM SHALL exit 0, remove `dist/verify` and drop `classpulse_verify`."
+    ],
+    "verify": [
+      "./scripts/package-release.sh",
+      "./scripts/verify-release.sh",
+      "test -f dist/classpulse-app.zip && test -f dist/classpulse-public_html.zip && test -f dist/install.sql",
+      "grep -q 'CREATE TABLE `participation_entries`' dist/install.sql",
+      "test \"$(grep -c 'INSERT INTO `users`' dist/install.sql)\" = 0",
+      "test ! -e dist/verify"
+    ],
+    "checkpoint": "step-24-release",
+    "files": [
+      "scripts/package-release.sh",
+      "scripts/release-exclude.txt",
+      "scripts/verify-release.sh"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "E3-T7",
+    "title": "Write the owner documentation in Spanish",
+    "epic": "03-reports-import-release",
+    "dependencies": ["E3-T6"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `README.md` is read THE SYSTEM SHALL contain the headings `## Qué es`, `## Primeros pasos` and `## Documentación` and the path `docs/hostinger-deploy.md`.",
+      "WHEN `docs/local-development.md` is read THE SYSTEM SHALL contain `## Arrancar el entorno local`, `## Ejecutar las pruebas` and `## Datos de demostración`, and the commands `docker compose up -d` and `classpulse:demo-seed`.",
+      "WHEN `docs/hostinger-deploy.md` is read THE SYSTEM SHALL contain `## Lista de verificación en hPanel`, `## Estructura de carpetas (Layout B)`, `## Instalar la base de datos con phpMyAdmin`, `## Crear el archivo .env en el servidor` and `## Ruta alternativa con SSH`, and the literals `classpulse-app`, `public_html`, `APP_DEBUG=false` and `NO VERIFICADO`.",
+      "WHEN `docs/access-and-recovery.md` is read THE SYSTEM SHALL contain `## Crear la cuenta de la docente`, `## Restablecer la contraseña`, `## Recuperación sin SSH` and `## Recuperación de último recurso con SQL`, and the commands `classpulse:hash` and `classpulse:reset-password`.",
+      "WHEN `docs/backups.md` is read THE SYSTEM SHALL contain `## Copias de seguridad de hPanel`, `## Exportación semanal manual` and `## Restaurar una copia`.",
+      "WHEN `README.md` and every file in `docs/` are scanned THE SYSTEM SHALL find 0 lines containing `APP_KEY=base64:` followed by 20 or more base64 characters, or a bcrypt prefix made of `$2y$`, two digits and `$`."
+    ],
+    "verify": [
+      "grep -qF '## Qué es' README.md && grep -qF '## Primeros pasos' README.md && grep -qF '## Documentación' README.md && grep -qF 'docs/hostinger-deploy.md' README.md",
+      "grep -qF '## Arrancar el entorno local' docs/local-development.md && grep -qF '## Ejecutar las pruebas' docs/local-development.md && grep -qF '## Datos de demostración' docs/local-development.md && grep -qF 'docker compose up -d' docs/local-development.md && grep -qF 'classpulse:demo-seed' docs/local-development.md",
+      "grep -qF '## Lista de verificación en hPanel' docs/hostinger-deploy.md && grep -qF '## Estructura de carpetas (Layout B)' docs/hostinger-deploy.md && grep -qF '## Instalar la base de datos con phpMyAdmin' docs/hostinger-deploy.md && grep -qF '## Crear el archivo .env en el servidor' docs/hostinger-deploy.md && grep -qF '## Ruta alternativa con SSH' docs/hostinger-deploy.md",
+      "grep -qF 'classpulse-app' docs/hostinger-deploy.md && grep -qF 'public_html' docs/hostinger-deploy.md && grep -qF 'APP_DEBUG=false' docs/hostinger-deploy.md && grep -qF 'NO VERIFICADO' docs/hostinger-deploy.md",
+      "grep -qF '## Crear la cuenta de la docente' docs/access-and-recovery.md && grep -qF '## Restablecer la contraseña' docs/access-and-recovery.md && grep -qF '## Recuperación sin SSH' docs/access-and-recovery.md && grep -qF '## Recuperación de último recurso con SQL' docs/access-and-recovery.md && grep -qF 'classpulse:hash' docs/access-and-recovery.md && grep -qF 'classpulse:reset-password' docs/access-and-recovery.md",
+      "grep -qF '## Copias de seguridad de hPanel' docs/backups.md && grep -qF '## Exportación semanal manual' docs/backups.md && grep -qF '## Restaurar una copia' docs/backups.md",
+      "test -z \"$(grep -hcE 'APP_KEY=base64:[A-Za-z0-9+/=]{20,}|\\$2y\\$[0-9]{2}\\$' README.md docs/local-development.md docs/hostinger-deploy.md docs/access-and-recovery.md docs/backups.md | grep -v '^0$')\""
+    ],
+    "checkpoint": "step-25-owner-docs",
+    "files": [
+      "README.md",
+      "docs/local-development.md",
+      "docs/hostinger-deploy.md",
+      "docs/access-and-recovery.md",
+      "docs/backups.md"
+    ],
+    "status": "done"
+  }
+]

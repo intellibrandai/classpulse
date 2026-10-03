@@ -1,0 +1,368 @@
+/* Weekly Matrix: toolbar, KPI extras, info strip, filters, sticky matrix, quick-edit popover and the printed sheet.
+   Surfaces reuse the UI kit (.glass, .ui-kpi, .ui-toolbar, .ui-popover); colours come from tokens.css only. */
+
+.weekly-page { min-width: 0; }
+.weekly-page .wm-error { margin: 0 0 12px; }
+
+/* Toolbar */
+.wm-toolbar { margin-bottom: 20px; padding: 14px 16px; gap: 12px 14px; }
+.wm-nav { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.wm-navigator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--input-bg);
+}
+.wm-navigator .btn-icon { width: 40px; height: 40px; }
+.wm-week-badge { display: flex; align-items: center; gap: 10px; padding: 2px 10px; min-width: 0; }
+.wm-week-icon { color: var(--text-accent); }
+.wm-week-text { min-width: 0; }
+.wm-week-title { margin: 0; font-family: inherit; font-size: 15px; font-weight: 800; line-height: 1.25; white-space: nowrap; }
+.wm-term { margin: 1px 0 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+.wm-class-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 170px;
+  max-width: 380px;
+  min-height: 40px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.wm-class-chip strong { color: var(--text-primary); white-space: nowrap; }
+.wm-class-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wm-class-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-emerald); box-shadow: var(--glow-success); }
+.wm-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.wm-actions .ui-btn.is-copied { border-color: var(--color-emerald-border); color: var(--text-success); }
+
+/* KPI cards */
+.wm-kpis { margin-bottom: 16px; }
+.wm-kpi-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.wm-kpi-row .ui-kpi-value { margin: 0; }
+.wm-kpi-row .ui-kpi-chart { flex: 0 1 112px; min-width: 64px; margin: 0; min-height: 0; }
+.wm-progress { flex: 1 1 80px; min-width: 60px; max-width: 140px; }
+.wm-peak-value { align-items: center; }
+.wm-peak-value .ui-badge { font-size: 12px; }
+.ui-kpi-label { display: flex; align-items: center; gap: 6px; }
+.ui-kpi-sub [hidden] { display: none; }
+.wm-chart .ui-chart-gap { stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 2 2; opacity: 0.45; }
+.ui-chart .ui-chart-bar.is-peak { opacity: 1; }
+
+/* Info tooltips: the card that owns the open tooltip is lifted above its neighbours (each glass card is its own stacking context) */
+.wm-kpis .ui-kpi { position: relative; }
+.wm-kpis .ui-kpi:hover,
+.wm-kpis .ui-kpi:focus-within { z-index: 10; }
+
+.wm-kpis .ui-kpi:nth-child(even) .info-tip-text { left: auto; right: -8px; }
+
+/* Info strip */
+.wm-info-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+}
+.wm-info-text { flex: 1 1 320px; margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-secondary); }
+.wm-info-text strong { color: var(--text-primary); }
+.wm-info-text .legend-chip { margin: 0 2px; vertical-align: middle; }
+.wm-scale { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+.wm-scale .matrix-legend { margin: 0; }
+.legend-chip.heat-0 { background: var(--chip-0-bg); border: 1px solid var(--chip-0-border); color: var(--chip-0-text); box-shadow: var(--chip-0-glow); }
+.legend-chip.heat-low { background: var(--chip-low-bg); border: 1px solid var(--chip-low-border); color: var(--chip-low-text); box-shadow: var(--chip-low-glow); }
+.legend-chip.heat-mid { background: var(--chip-mid-bg); border: 1px solid var(--chip-mid-border); color: var(--chip-mid-text); box-shadow: var(--chip-mid-glow); }
+.legend-chip.heat-high { background: var(--chip-high-bg); border: 1px solid var(--chip-high-border); color: var(--chip-high-text); box-shadow: var(--chip-high-glow); }
+.legend-chip.heat-absent { background: var(--chip-absent-bg); border: 1px solid var(--chip-absent-border); color: var(--chip-absent-text); box-shadow: var(--chip-absent-glow); }
+.legend-chip.is-empty { box-shadow: none; }
+
+/* Filters */
+.wm-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin-bottom: 14px; }
+.wm-search { flex: 1 1 240px; max-width: 360px; }
+.wm-sort { display: flex; align-items: center; gap: 8px; padding: 0 0 0 12px; border: 1px solid var(--glass-border); border-radius: var(--radius-md); background: var(--input-bg); }
+.wm-sort .ui-input { width: auto; min-width: 190px; border: 0; border-left: 1px solid var(--glass-border); border-radius: 0 var(--radius-md) var(--radius-md) 0; background: transparent; font-weight: 600; }
+.wm-count { margin-left: auto; gap: 8px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+.wm-count .icon { color: var(--text-accent); }
+.wm-count strong { color: var(--text-primary); }
+
+/* Matrix: its own scroll container (sticky first column, header and footer) */
+.wm-scroll {
+  position: relative;
+  max-height: min(78vh, 980px);
+  margin-bottom: 24px;
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  /* Keyboard focus keeps a cell clear of the sticky header and the sticky totals row. */
+  scroll-padding-block: 64px 90px;
+  scroll-padding-inline: 0 10px; /* a cell focused at the right edge keeps its focus ring */
+  overscroll-behavior: contain;
+}
+.wm-scroll:focus-visible { outline-offset: -3px; }
+.wm-table { width: 100%; min-width: 820px; border-collapse: separate; border-spacing: 0; font-size: 13px; text-align: left; }
+.wm-table th,
+.wm-table td { padding: 10px 12px; border-bottom: 1px solid var(--divider); vertical-align: middle; }
+.wm-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--glass-solid);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.wm-table thead th .wm-dow { display: block; color: var(--text-primary); font-size: 12px; text-transform: none; letter-spacing: 0; }
+.wm-table thead th .wm-date { display: block; margin-top: 2px; color: var(--text-muted); font-size: 10.5px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.wm-table thead th.wm-col-student { left: 0; z-index: 5; min-width: 210px; text-align: left; }
+.wm-table thead th.is-today .wm-dow { color: var(--text-accent); }
+.wm-table thead th.wm-col-stat { background: var(--glass-solid); }
+.wm-table tbody th.wm-student {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 210px;
+  background: var(--glass-solid);
+  box-shadow: 1px 0 0 var(--divider);
+  text-align: left;
+  font-weight: 400;
+}
+.wm-student { display: table-cell; }
+.wm-student > * { vertical-align: middle; }
+.wm-student .ui-avatar { display: inline-flex; margin-right: 10px; }
+.wm-student-text { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; max-width: calc(100% - 50px); vertical-align: middle; }
+.wm-name { color: var(--text-primary); font-weight: 700; font-size: 13.5px; white-space: nowrap; }
+.wm-number { color: var(--text-muted); font-size: 11px; font-family: var(--font-mono); }
+.wm-archived { margin: 2px 0; padding: 1px 7px; font-size: 10px; }
+.wm-table tbody tr:hover > th.wm-student,
+.wm-table tbody tr:hover > td { background: var(--hover-tint-soft); }
+.wm-table tbody tr:hover > th.wm-student { background: var(--glass-solid); background-image: linear-gradient(var(--hover-tint-soft), var(--hover-tint-soft)); }
+.wm-table td.wm-day { text-align: center; }
+.wm-table td.wm-stat { text-align: center; white-space: nowrap; }
+.wm-total { font-family: var(--font-mono); font-size: 15px; font-weight: 800; color: var(--text-primary); }
+.wm-avg-pill {
+  display: inline-block;
+  min-width: 48px;
+  padding: 3px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--hover-tint);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.wm-sub { display: block; margin-top: 3px; min-height: 12px; color: var(--text-muted); font-size: 10.5px; font-weight: 600; }
+.wm-table tbody tr[hidden] { display: none; }
+.wm-table .row-empty { padding: 28px; text-align: center; color: var(--text-secondary); }
+.wm-table tfoot th,
+.wm-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding: 12px;
+  border-top: 1px solid var(--border-violet);
+  border-bottom: 0;
+  background: var(--glass-solid);
+}
+.wm-table tfoot .wm-foot-label { left: 0; z-index: 4; color: var(--text-secondary); font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-align: left; text-transform: uppercase; }
+.wm-foot { text-align: center; }
+.wm-foot strong { display: block; font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.wm-foot span { display: block; margin-top: 2px; color: var(--text-muted); font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.wm-table tfoot td.wm-foot-avg { background-image: linear-gradient(var(--color-indigo-tint), var(--color-indigo-tint)); }
+
+/* Cells: a recorded 0 and a not-recorded dash are different things on purpose */
+.wm-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 6px;
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+.wm-cell:hover:not(:disabled) { box-shadow: var(--chip-hover-glow); transform: translateY(-1px); }
+.wm-cell:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; box-shadow: var(--chip-hover-glow); }
+.wm-cell.is-editing { border-color: var(--border-focus); box-shadow: var(--chip-hover-glow); }
+.wm-cell.heat-0 { background: var(--chip-0-bg); border-color: var(--chip-0-border); color: var(--chip-0-text); box-shadow: var(--chip-0-glow); }
+.wm-cell.heat-low { background: var(--chip-low-bg); border-color: var(--chip-low-border); color: var(--chip-low-text); box-shadow: var(--chip-low-glow); }
+.wm-cell.heat-mid { background: var(--chip-mid-bg); border-color: var(--chip-mid-border); color: var(--chip-mid-text); box-shadow: var(--chip-mid-glow); }
+.wm-cell.heat-high { background: var(--chip-high-bg); border-color: var(--chip-high-border); color: var(--chip-high-text); box-shadow: var(--chip-high-glow); }
+.wm-cell.heat-absent { background: var(--chip-absent-bg); border-color: var(--chip-absent-border); color: var(--chip-absent-text); box-shadow: var(--chip-absent-glow); }
+.wm-cell.wm-cell-none { background: transparent; border: 1px dashed var(--border-strong); color: var(--chip-none-text); font-weight: 400; box-shadow: none; }
+.wm-cell.heat-0:hover:not(:disabled),
+.wm-cell.heat-low:hover:not(:disabled),
+.wm-cell.heat-mid:hover:not(:disabled),
+.wm-cell.heat-high:hover:not(:disabled),
+.wm-cell.heat-absent:hover:not(:disabled),
+.wm-cell.wm-cell-none:hover:not(:disabled),
+.wm-cell.is-editing,
+.wm-cell:focus-visible { box-shadow: var(--chip-hover-glow); }
+.wm-cell:disabled { cursor: not-allowed; opacity: 0.55; }
+
+/* Quick editor: popover on wide screens, bottom sheet on phones */
+/* glass.css loads later and sets .ui-popover { position: absolute }, so the compound selector is needed. */
+.ui-popover.cell-editor {
+  position: fixed;
+  left: var(--wm-left, 8px);
+  top: var(--wm-top, 8px);
+  z-index: 200;
+  width: 300px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+}
+.cell-editor[hidden] { display: none; }
+.cell-editor-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.cell-editor-head .ui-btn { min-width: 40px; min-height: 40px; }
+.cell-editor-title { margin: 0; font-size: 13.5px; font-weight: 800; line-height: 1.35; }
+.cell-editor-state { margin: 0 0 10px; font-size: 12px; color: var(--text-secondary); }
+.cell-editor-points { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.cell-editor-step { flex: none; width: 44px; height: 44px; min-height: 44px; }
+.cell-editor-input { flex: 1 1 60px; min-width: 0; height: 44px; text-align: center; font-family: var(--font-mono); font-size: 18px; font-weight: 800; -moz-appearance: textfield; appearance: textfield; }
+.cell-editor-input::-webkit-outer-spin-button,
+.cell-editor-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cell-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cell-editor-actions .ui-btn { min-height: 40px; }
+.cell-editor-error { margin: 10px 0 0; font-size: 12px; font-weight: 600; color: var(--text-danger); }
+.cell-editor-error[hidden] { display: none; }
+
+/* Print sheet (screen hides .print-only; print.css reveals it) */
+.wm-print-summary ul { margin: 0 0 6pt; padding-left: 14pt; }
+.wm-print-summary p { margin: 0 0 8pt; font-size: 9pt; }
+
+@media (max-width: 1100px) {
+  .wm-actions { margin-left: 0; }
+  .wm-count { margin-left: 0; }
+}
+@media (max-width: 768px) {
+  .wm-toolbar { padding: 12px; }
+  .wm-nav { flex: 1 1 100%; flex-wrap: wrap; }
+  .wm-navigator { flex: 1 1 auto; }
+  .wm-week-badge { flex: 1 1 auto; justify-content: center; }
+  .wm-week-title { font-size: 13.5px; white-space: normal; text-align: center; }
+  .wm-term { white-space: normal; text-align: center; }
+  .wm-class-chip { flex: 1 1 100%; max-width: none; }
+  .wm-actions { flex: 1 1 100%; }
+  .wm-actions .ui-btn { flex: 1 1 auto; min-height: 44px; }
+  .wm-actions .btn-text { white-space: normal; }
+  .wm-search { flex: 1 1 100%; max-width: none; }
+  .wm-sort { flex: 1 1 100%; }
+  .wm-sort .ui-input { flex: 1 1 auto; min-width: 0; }
+  .wm-count { flex: 1 1 100%; justify-content: center; }
+  .wm-info-strip { padding: 12px; }
+  .wm-scroll { max-height: 72vh; border-color: var(--border-violet); }
+  .wm-table { min-width: 720px; }
+  .wm-table thead th.wm-col-student,
+  .wm-table tbody th.wm-student { min-width: 132px; max-width: 132px; }
+  .wm-table tbody th.wm-student { padding: 8px 8px; }
+  .wm-student .ui-avatar { display: none; }
+  .wm-student-text { max-width: 100%; }
+  .wm-name { white-space: normal; }
+  .wm-cell { min-width: 44px; height: 44px; }
+  .wm-table th,
+  .wm-table td { padding: 6px 8px; }
+  .ui-popover.cell-editor {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.4);
+  }
+  .cell-editor-actions .ui-btn { flex: 1 1 auto; }
+  .wm-kpis .ui-kpi:nth-child(even) .info-tip-text { top: 48px; right: 12px; left: 12px; width: auto; }
+}
+@media (max-width: 420px) {
+  .wm-kpi-row .ui-kpi-chart { flex-basis: 96px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wm-cell { transition: none; }
+}
+@media (forced-colors: active) {
+  .wm-cell { border: 1px solid ButtonText; }
+  .wm-cell.wm-cell-none { border-style: dashed; }
+  .wm-cell.is-editing { outline: 2px solid Highlight; }
+}
+
+/* Print: title, class and week (print header), KPI row as text, the matrix with every column, totals */
+@media print {
+  .weekly-page .wm-kpis,
+  .weekly-page .wm-filters,
+  .weekly-page .cell-editor,
+  .weekly-page .wm-toolbar { display: none !important; }
+  .wm-info-strip { display: block; margin: 0 0 8pt; padding: 0; border: 0 !important; background: white !important; }
+  .wm-info-strip .ui-icon-chip { display: none; }
+  .wm-info-text { margin: 0 0 4pt; font-size: 9pt; color: black !important; }
+  .wm-scale .ui-eyebrow,
+  .matrix-legend { color: black !important; font-size: 9pt; }
+  .wm-scroll { max-height: none; overflow: visible; margin: 0; border: 0 !important; }
+  /* print.css (.glass { border: 0.75pt solid gray !important }) loads after this file and won the one-class tie, so the
+     matrix was framed by a rounded second outline 2px outside the square table border. Two classes remove it. */
+  .wm-scroll.glass { border: 0 !important; border-radius: 0 !important; }
+  /* 1pt inset: a table flush with the page margin loses the outer half of its right border (a 1px hairline at 300 dpi). */
+  .wm-table { min-width: 0; width: calc(100% - 1pt); font-size: 10pt; border-collapse: collapse; }
+  .wm-table th,
+  .wm-table td,
+  .wm-table thead th,
+  .wm-table tfoot th,
+  .wm-table tfoot td,
+  .wm-table tbody th.wm-student {
+    position: static;
+    padding: 3pt 4pt;
+    border: 0.5pt solid gray !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none;
+  }
+  .wm-table thead th .wm-dow,
+  .wm-table thead th .wm-date,
+  .wm-number,
+  .wm-sub,
+  .wm-foot span,
+  .wm-foot strong,
+  .wm-name { color: black !important; }
+  .wm-student .ui-avatar { display: none; }
+  .wm-student-text { display: flex; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 6pt; max-width: none; }
+  .wm-name { min-height: 0; display: inline; }
+  .wm-sub { display: inline; margin: 0 0 0 4pt; min-height: 0; font-size: 8pt; }
+  .wm-table tbody td,
+  .wm-table tbody th { height: auto; line-height: 1.25; }
+  .wm-cell {
+    display: inline-flex !important;
+    min-width: 0;
+    height: auto;
+    padding: 0 4pt;
+    border: 0 !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    font-size: 10pt;
+    opacity: 1;
+  }
+  .wm-cell.heat-absent { font-weight: 900; }
+  .wm-cell.wm-cell-none { font-weight: 400; }
+  .wm-avg-pill,
+  .wm-table .ui-badge { border: 0; background: white !important; color: black !important; padding: 0; font-size: 10pt; }
+  .wm-table tfoot { display: table-row-group; }
+  .wm-table tbody tr[hidden] { display: none; }
+}

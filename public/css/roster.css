@@ -1,0 +1,437 @@
+/* Class Roster & Settings: class cards, Class Details, Calculation Rules, roster panel, edit dialog, archived list and the printed roster.
+   Surfaces reuse the UI kit (.glass, .ui-table, .ui-input, .ui-btn, .ui-badge, .ui-progress); colours come from tokens.css only. */
+
+.roster-page { min-width: 0; }
+.glass-red { border-color: var(--border-red); }
+.roster-page .notice { display: flex; align-items: center; gap: 8px; }
+.ro-error { margin: 6px 0 0; font-size: 12px; font-weight: 600; line-height: 1.4; color: var(--text-danger); }
+.ro-hint { margin: 6px 0 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+.ro-lead { margin: 4px 0 0; font-size: 13px; color: var(--text-secondary); }
+.ro-req { color: var(--text-danger); }
+
+/* Class selector row */
+.ro-classes { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.ro-class-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 1 240px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+.ro-class-card:hover { border-color: var(--border-violet); box-shadow: var(--glow-primary), var(--shadow-glass); }
+.ro-class-card:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+.ro-class-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ro-class-code { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-size: 14px; font-weight: 800; }
+.ro-class-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-emerald); box-shadow: var(--glow-success); }
+.ro-class-sub { overflow: hidden; color: var(--text-secondary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.ro-class-card.is-current { background: var(--color-indigo-tint); }
+.ro-class-new { flex: 0 0 auto; }
+.ro-class-new .ro-class-code { color: var(--text-success); }
+
+/* Create form */
+.ro-create { margin-bottom: 20px; padding: 0; border-radius: var(--radius-lg); }
+/* Opened from the Create New Class card (or ?create=1); the bare summary bar only shows when the page is targeted without JS. */
+.ro-create:not([open]):not(:target) { display: none; }
+.ro-create > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.ro-create > summary::-webkit-details-marker { display: none; }
+.ro-create[open] > summary { border-bottom: 1px solid var(--divider); }
+.ro-create .ro-form { padding: 20px; }
+
+/* Layout */
+.ro-layout { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.ro-side,
+.ro-main { min-width: 0; }
+.ro-card { margin-bottom: 20px; padding: 20px 22px; border-radius: var(--radius-lg); }
+.ro-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--divider); }
+.ro-card-title { display: flex; align-items: center; gap: 10px; min-width: 0; margin: 0; font-family: inherit; font-size: 17px; font-weight: 800; line-height: 1.25; color: var(--text-primary); }
+
+/* Forms */
+.ro-form { margin: 0; }
+.ro-grid { display: grid; gap: 14px 12px; }
+.ro-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ro-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ro-field { min-width: 0; }
+.ro-field .ui-eyebrow { display: block; margin-bottom: 6px; }
+.ro-span { grid-column: 1 / -1; }
+.ro-form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.ro-field .ui-input[aria-invalid="true"] { border-color: var(--color-danger-solid); }
+
+/* Settings groups: native <details> accordions (Class details, Academic periods, Calculation rules). Collapsed inputs still submit. */
+.ro-group { scroll-margin-top: 88px; margin: 0 0 12px; border: 1px solid var(--glass-border); border-radius: var(--radius-md); background: var(--input-bg); box-shadow: inset 0 1px 0 var(--glass-highlight); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+.ro-group[open] { border-color: var(--border-violet); }
+.ro-group:target { border-color: var(--border-focus); }
+.ro-group-solo { margin: 0; border-color: transparent; background: transparent; box-shadow: none; }
+.ro-group-solo[open] { border-color: transparent; }
+.ro-rules-card { padding: 8px 12px; }
+.ro-group-summary { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; border-radius: var(--radius-md); cursor: pointer; list-style: none; }
+.ro-group-summary::-webkit-details-marker { display: none; }
+.ro-group-summary:hover { background: var(--hover-tint-soft); }
+.ro-group-summary:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+.ro-group-text { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
+.ro-group-title { color: var(--text-primary); font-size: 14.5px; font-weight: 800; line-height: 1.25; }
+.ro-group-sub { color: var(--text-muted); font-size: 12px; line-height: 1.35; }
+.ro-group-caret { flex: none; color: var(--text-muted); transition: transform var(--transition-fast); }
+.ro-group[open] > .ro-group-summary .ro-group-caret { transform: rotate(180deg); }
+.ro-group[open] > .ro-group-summary { border-bottom: 1px solid var(--divider); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.ro-group-body { min-width: 0; margin: 0; padding: 16px 14px 18px; border: 0; }
+.ro-periods .ro-hint { margin: 12px 0 0; }
+.ro-period-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 10px 12px; margin-top: 14px; padding: 12px; border: 1px solid var(--glass-border); border-radius: var(--radius-md); background: var(--hover-tint-soft); }
+.ro-period-tag { grid-column: 1 / -1; justify-self: start; }
+.ro-period-row .ro-field:first-of-type { grid-column: 1 / -1; }
+
+/* One Save button for the whole form, kept in view while the groups scroll */
+.ro-save-bar { position: sticky; bottom: 12px; z-index: 6; align-items: center; margin-top: 16px; padding: 10px 12px; border: 1px solid var(--border-violet); border-radius: var(--radius-md); background: var(--glass-bg-strong); box-shadow: var(--glow-primary), var(--shadow-glass); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); }
+/* Keyboard focus keeps the settings fields clear of the sticky save bar (12px offset + about 66px bar + 6px). */
+.ro-settings .ro-group-summary,
+.ro-settings input,
+.ro-settings select,
+.ro-settings textarea { scroll-margin-bottom: 84px; }
+.ro-save-note { color: var(--text-secondary); font-size: 12px; }
+
+/* Calculation rules */
+.ro-rules { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.ro-rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+}
+.ro-rule > .icon { margin-top: 2px; color: var(--text-success); }
+.ro-rule-title { margin: 0; color: var(--text-primary); font-size: 13.5px; font-weight: 700; }
+.ro-rule-text { margin: 2px 0 0; color: var(--text-secondary); font-size: 12.5px; line-height: 1.45; }
+
+/* Files & backups */
+.ro-files-card { padding: 8px 12px; }
+.ro-files-lead { margin: 0 0 16px; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.ro-files-block { margin: 0 0 18px; }
+.ro-files-heading { margin: 0 0 8px; color: var(--text-primary); font-family: inherit; font-size: 13.5px; font-weight: 800; }
+.ro-files-import { max-width: 100%; white-space: normal; text-align: left; }
+.ro-files-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ro-files-item { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 8px 8px 8px 14px; border: 1px solid var(--glass-border); border-radius: var(--radius-md); background: var(--input-bg); }
+.ro-files-name { min-width: 0; color: var(--text-primary); font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.ro-files-list .ui-btn { flex: none; }
+.ro-files .ro-hint { margin: 10px 0 0; }
+.ro-files-note { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 12px 14px; border: 1px solid var(--glass-border); border-radius: var(--radius-md); background: var(--info-bg); color: var(--text-primary); font-size: 12.5px; line-height: 1.5; }
+.ro-files-note .icon { margin-top: 2px; color: var(--text-info); }
+
+/* Danger zone */
+.ro-danger { margin-top: 28px; padding: 6px 22px; border-style: dashed; }
+.ro-danger-details > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  color: var(--text-danger);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.ro-danger-details > summary::-webkit-details-marker { display: none; }
+.ro-danger-note { margin: 0 0 14px; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.ro-danger-details[open] { padding-bottom: 16px; }
+
+/* Roster panel */
+.ro-roster-head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
+.ro-roster-title { flex-wrap: wrap; font-size: 22px; }
+.ro-meter { flex: 0 1 340px; min-width: 240px; padding: 10px 14px; border-radius: var(--radius-md); }
+.ro-meter-text { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 8px; color: var(--text-secondary); font-size: 12.5px; }
+.ro-meter-text strong { color: var(--text-primary); font-family: var(--font-mono); font-weight: 700; }
+.ro-progress.is-warn::-webkit-progress-value { background: linear-gradient(90deg, var(--color-amber), var(--color-crimson)); }
+.ro-progress.is-warn::-moz-progress-bar { background: linear-gradient(90deg, var(--color-amber), var(--color-crimson)); }
+
+.ro-actions { display: flex; align-items: stretch; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.ro-quick { display: flex; align-items: center; flex: 1 1 400px; gap: 10px; min-width: 0; margin: 0; padding: 8px 10px; border-radius: var(--radius-md); }
+.ro-quick-icon { flex: none; color: var(--text-accent); }
+.ro-quick-fields { display: flex; flex: 1; gap: 8px; min-width: 0; }
+.ro-quick-fields .ui-input:first-child { flex: 1 1 auto; min-width: 0; }
+.ro-quick-number { flex: 0 1 130px; min-width: 0; }
+.ro-import { flex: 0 0 auto; justify-content: center; }
+.ro-actions .ui-btn-icon { flex: none; }
+.ro-quick-errors { margin: -4px 0 12px; }
+.ro-quick-errors .ro-error { margin: 0; }
+
+.ro-toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px 16px; margin-bottom: 14px; }
+.ro-search { flex: 1 1 260px; max-width: 460px; }
+.ro-sort { display: flex; align-items: center; gap: 8px; }
+.ro-sort .ui-input { width: auto; min-width: 220px; }
+.ro-count { margin-left: auto; padding: 6px 12px; font-size: 12px; }
+
+.ro-table-wrap { margin-top: 0; }
+.ui-table.ro-table th,
+.ui-table.ro-table td { padding: 10px 10px; }
+.ui-table.ro-table thead th { white-space: normal; line-height: 1.25; }
+.ro-table .ro-col-order { width: 44px; }
+.ro-table .ro-col-actions { width: 1%; text-align: right; }
+.ro-order { color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
+.ro-info-inner { display: flex; align-items: center; gap: 10px; min-width: 170px; }
+.ro-avatar { flex: none; }
+.ro-info-text { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.ro-name { color: var(--text-primary); font-size: 14px; font-weight: 700; }
+.ro-preferred { color: var(--text-muted); font-size: 12px; }
+.ro-number { color: var(--text-secondary); font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
+.ro-obs { max-width: 190px; color: var(--text-secondary); }
+.ro-obs-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.ro-empty { color: var(--text-muted); }
+.ro-avg {
+  display: inline-block;
+  min-width: 48px;
+  padding: 3px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--hover-tint);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  white-space: nowrap;
+}
+.ro-avg.is-empty { font-family: var(--font-main); color: var(--text-muted); border-style: dashed; }
+.ro-actions-cell { position: relative; white-space: nowrap; text-align: right; }
+.ro-actions-cell > .ui-btn,
+.ro-actions-cell > .ro-archive { display: inline-block; vertical-align: middle; }
+.ro-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; min-height: 40px; padding: 0; cursor: pointer; list-style: none; }
+.ro-archive > summary::-webkit-details-marker { display: none; }
+.ro-archive { position: relative; }
+.ro-archive[open] > summary { border-color: var(--border-red); color: var(--text-danger); }
+.ro-archive-body {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 260px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  white-space: normal;
+}
+.ro-archive-body p { margin: 0 0 10px; color: var(--text-primary); font-size: 12.5px; line-height: 1.45; }
+.ro-table tbody tr[hidden] { display: none; }
+.ro-table .row-empty { padding: 28px; text-align: center; color: var(--text-secondary); }
+.ro-table tbody tr:last-child:not([hidden]) td { border-bottom: 0; }
+
+/* Archived students */
+.ro-archived { padding: 0; }
+.ro-archived > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 22px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.ro-archived > summary::-webkit-details-marker { display: none; }
+.ro-archived[open] > summary { border-bottom: 1px solid var(--divider); }
+.ro-archived > .ro-lead,
+.ro-archived-error { margin: 14px 22px; }
+.ro-archived-list { margin: 0; padding: 6px 22px 12px; list-style: none; }
+.ro-archived-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--divider); }
+.ro-archived-row:last-child { border-bottom: 0; }
+.ro-archived-row .ro-info-text { flex: 1; }
+.ro-archived-row form { margin: 0; }
+.ro-archived-row .ui-btn { min-height: 40px; }
+
+/* Edit dialog */
+dialog.ro-dialog { width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; }
+.ro-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.ro-dialog .ro-field { margin-bottom: 14px; }
+
+/* Tablet and phone */
+@media (max-width: 1100px) {
+  .ro-layout { grid-template-columns: 1fr; }
+  .ro-main { order: -1; }
+  .ro-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ro-count { margin-left: 0; }
+}
+@media (max-width: 900px) {
+  .ro-table .ro-col-order { display: none; }
+  .ro-obs { max-width: 150px; }
+}
+@media (max-width: 767px) {
+  /* The scroller clips overflow, so it carries room for the 5px focus ring of its cards (net layout unchanged). */
+  .ro-classes { flex-wrap: nowrap; overflow-x: auto; padding: 6px 6px 10px; margin: -6px -6px 10px; scroll-padding-inline: 6px; scroll-snap-type: x proximity; }
+  .ro-class-card { flex: 0 0 220px; scroll-snap-align: start; }
+  .ro-card { padding: 16px; }
+  .ro-group-summary { padding: 8px 10px; }
+  .ro-group-body { padding: 14px 10px 16px; }
+  .ro-save-bar { bottom: 8px; }
+  .ro-save-bar .ui-btn { flex: 1 1 100%; min-height: 44px; }
+  .ro-save-note { display: none; }
+  .ro-grid-2,
+  .ro-grid-3 { grid-template-columns: 1fr; }
+  .ro-roster-title { font-size: 19px; }
+  .ro-meter { flex: 1 1 100%; }
+  .ro-quick { flex: 1 1 100%; flex-wrap: wrap; }
+  .ro-quick-icon { display: none; }
+  .ro-quick-fields { flex: 1 1 100%; flex-direction: column; order: 1; }
+  .ro-quick-number { flex: 1 1 auto; }
+  .ro-quick .ui-btn-primary { order: 2; flex: 1 1 100%; min-height: 44px; }
+  .ro-import { flex: 1 1 0; min-height: 44px; }
+  .ro-actions .ui-btn-icon { min-height: 44px; }
+  .ro-search { flex: 1 1 100%; max-width: none; }
+  .ro-sort { flex: 1 1 100%; }
+  .ro-sort .ui-input { flex: 1; min-width: 0; width: 100%; }
+  dialog.ro-dialog { width: 100vw; max-width: 100vw; max-height: 92vh; margin: auto 0 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+
+  /* Rows become stacked cards */
+  .ro-roster .ro-table-wrap { overflow: visible; background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .ro-table thead { display: none; }
+  .ro-table,
+  .ro-table tbody { display: block; width: 100%; }
+  .ro-table tbody tr[data-student-row] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    background: var(--glass-bg);
+  }
+  .ro-table tbody tr[hidden] { display: none; }
+  .ui-table.ro-table td { display: block; padding: 0; border: 0; }
+  .ro-table .ro-col-order { display: none !important; }
+  .ro-table td.ro-info { grid-column: 1 / -1; grid-row: 1; }
+  .ro-table td.ro-number::before,
+  .ro-table td.ro-obs::before,
+  .ro-table td[data-label="Semester avg"]::before { color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .ro-table td.ro-number::before,
+  .ro-table td.ro-obs::before { content: attr(data-label) ": "; }
+  .ro-table td[data-label="Semester avg"]::before { content: "Avg: "; }
+  .ro-table td.ro-number { grid-column: 1; grid-row: 2; }
+  .ro-table td[data-label="Semester avg"] { grid-column: 2; grid-row: 2; justify-self: end; }
+  .ro-table td.ro-obs { grid-column: 1 / -1; grid-row: 3; max-width: none; }
+  .ro-table td[data-label="Today"] { grid-column: 1; grid-row: 4; }
+  .ro-table td.ro-actions-cell { grid-column: 2; grid-row: 4; justify-self: end; }
+  .ro-archive-body { position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px; width: auto; }
+  .ro-empty-row { display: block; }
+  .ro-empty-row[hidden] { display: none; }
+  .ro-empty-row td { display: block; }
+  .ro-archived > summary,
+  .ro-archived-list,
+  .ro-archived > .ro-lead { padding-left: 16px; padding-right: 16px; }
+}
+
+/* Printed roster: order, name, preferred name, number, observations and semester average only */
+@media print {
+  .ro-layout { display: block; }
+  .ro-layout .ro-card,
+  .ro-layout .ro-roster,
+  .ro-layout .ro-roster .ro-table-wrap { border: 0 !important; border-radius: 0 !important; padding: 0; margin: 0 0 8pt; background: white !important; box-shadow: none !important; overflow: visible !important; }
+  /* The printed page is narrower than the phone breakpoint: keep a real table (no stacked cards, no hidden Order column). */
+  .ro-table { display: table; width: calc(100% - 1pt); table-layout: fixed; }
+  /* glass.css (.ui-table { width: 100% }) loads later and wins a one-class tie, which left the table flush with the page
+     margin and cut the outer half of its right border to a 1px hairline. Two classes keep the 1pt inset. */
+  .ui-table.ro-table { width: calc(100% - 1pt); }
+  .ro-table th:nth-child(1) { width: 46pt; } /* wide enough for the "ORDER" heading plus its 6pt padding (38pt let it touch the border) */
+  .ro-table th:nth-child(2) { width: 24%; }
+  .ro-table th:nth-child(3) { width: 13%; }
+  .ro-table th:nth-child(5) { width: 13%; }
+  .ro-table thead { display: table-header-group; }
+  .ro-table tbody { display: table-row-group; width: auto; }
+  .ro-table tbody tr[data-student-row] { display: table-row; margin: 0; padding: 0; border: 0; border-radius: 0; background: white; break-inside: avoid; }
+  .ui-table.ro-table td,
+  .ui-table.ro-table th { display: table-cell; padding: 3pt 6pt; border: 0.5pt solid gray !important; background: white !important; vertical-align: top; text-align: left; }
+  .ro-table .ro-col-order { display: table-cell !important; }
+  .ro-table td::before { content: none !important; display: none; }
+  .ro-table td.ro-obs { max-width: none; overflow-wrap: anywhere; }
+  .ro-info-text { flex-wrap: wrap; }
+  .ro-roster-head { margin-bottom: 6pt; }
+  .ro-roster-title { font-size: 13pt; color: black; }
+  .ro-roster-title .ui-badge,
+  .ro-lead { color: black; }
+  .ro-table { font-size: 10pt; }
+  .ro-table th,
+  .ro-table td { padding: 3pt 6pt; color: black; }
+  .ro-name,
+  .ro-preferred,
+  .ro-number,
+  .ro-order,
+  .ro-obs { color: black; }
+  .ro-avatar { display: none; }
+  .ro-info-inner { min-width: 0; }
+  .ro-info-text { flex-direction: row; gap: 6pt; align-items: baseline; }
+  .ro-obs { max-width: none; }
+  .ro-obs-text { display: block; overflow: visible; -webkit-line-clamp: unset; }
+  .ro-avg { border: 0; background: transparent; color: black; padding: 0; }
+  .ro-table tbody tr[hidden] { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ro-class-card,
+  .ro-group,
+  .ro-group-caret { transition: none; }
+}
+
+/* Import pages (upload and preview) */
+.import-page { max-width: 960px; margin: 0 auto; }
+.imp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; padding: 18px 22px; border-radius: var(--radius-lg); }
+.imp-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px; min-height: 40px; color: var(--text-accent); font-size: 12.5px; font-weight: 700; text-decoration: none; }
+.imp-back:hover { text-decoration: underline; }
+.imp-title { display: flex; align-items: center; gap: 10px; margin: 0; font-family: inherit; font-size: 20px; font-weight: 800; line-height: 1.25; }
+.imp-panel .imp-lead { margin: 0 0 18px; }
+.imp-seats { margin: 0 0 12px; }
+.imp-file { padding: 8px 10px; height: auto; }
+.imp-table-wrap { margin-bottom: 16px; }
+.imp-actions { margin-top: 0; }
+.imp-table .check-cell { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; }
+@media (max-width: 767px) {
+  .imp-head { flex-direction: column-reverse; padding: 14px 16px; }
+  .imp-title { font-size: 17px; }
+  .imp-actions .ui-btn { flex: 1 1 100%; }
+}
+
+/* Account group (change email / password): password fields with a show/hide toggle */
+.ro-account-card { margin-bottom: 20px; }
+.ro-account-solo { max-width: 560px; margin: 0 0 20px; }
+.ro-account .notice { margin: 0 0 16px; }
+.ro-account-current { display: flex; flex-direction: column; gap: 4px; margin: 0 0 18px; }
+.ro-account-email { color: var(--text-primary); font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.ro-account-form { margin: 0 0 8px; padding: 16px 0 0; border-top: 1px solid var(--divider); }
+.ro-account-form + .ro-account-form { margin-top: 16px; }
+.ro-account-form .ro-field { margin-bottom: 14px; }
+.ro-account-form .ro-files-heading { margin: 0 0 12px; }
+.pw-wrap { position: relative; display: flex; align-items: center; }
+.pw-input { padding-right: 52px; }
+.pw-toggle { position: absolute; top: 0; right: 0; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 100%; min-height: 40px; padding: 0; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); cursor: pointer; }
+.pw-toggle:hover { color: var(--text-primary); background: var(--hover-tint); }
+.pw-toggle:focus-visible { outline: 3px solid var(--border-focus); outline-offset: -3px; }
+.pw-toggle .pw-icon-hide,
+.pw-toggle[aria-pressed="true"] .pw-icon-show { display: none; }
+.pw-toggle[aria-pressed="true"] .pw-icon-hide { display: inline-block; }
+.ro-account .form-success { align-items: flex-start; font-size: 14px; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.ro-account .form-success .icon { margin-top: 2px; }

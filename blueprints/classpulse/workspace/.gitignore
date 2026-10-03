@@ -1,0 +1,31 @@
+# Laravel skeleton entries
+/.phpunit.cache
+/.phpunit.result.cache
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+.fleet
+.idea
+.nova
+.phpactor.json
+.vscode
+.zed
+Homestead.json
+Homestead.yaml
+auth.json
+*.log
+.DS_Store
+Thumbs.db
+
+# Environment files: never committed, except the documented example
+.env
+.env.*
+!.env.example
+
+# ClassPulse
+/dist/
+.claude/settings.local.json

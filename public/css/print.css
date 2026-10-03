@@ -1,0 +1,144 @@
+/* Print base (linked with media="print"): hides the app chrome, white page, black text, no glass, table rows and cards stay whole.
+   Pages opt in to the header with the layout props print-title / print-label (resources/views/components/print-header.blade.php).
+   Page-specific print layouts (Day Slip, weekly sheet, roster, summary) build on these rules. Only named colours here. */
+@page {
+  size: auto;
+  margin: 14mm 12mm;
+}
+
+html,
+body,
+.app-body,
+.login-body,
+.error-body {
+  background: white !important;
+  color: black !important;
+  min-height: 0;
+  overflow: visible;
+}
+body { font-size: 11pt; line-height: 1.4; -webkit-print-color-adjust: economy; print-color-adjust: economy; }
+body::before,
+.app-body::before { display: none !important; }
+
+/* Hide navigation, chrome, controls and screen-only widgets */
+.skip-link,
+.top-nav,
+.app-footer,
+.icon-sprite,
+dialog,
+button,
+.btn,
+.btn-tag,
+.btn-icon,
+.action-btn,
+.ui-btn,
+.toolbar,
+.ui-toolbar,
+.page-card-actions,
+.cards-toolbar,
+.filter-search-bar,
+.date-navigator,
+.scroll-hint,
+.panel-toggle,
+.no-print { display: none !important; }
+
+/* Print-only header */
+.print-header {
+  display: flex !important;
+  align-items: center;
+  gap: 12pt;
+  margin: 0 0 12pt;
+  padding: 0 0 8pt;
+  border-bottom: 1.5pt solid black;
+  break-inside: avoid;
+}
+.print-logo { display: block; height: 44pt; width: auto; }
+.print-heading { flex: 1; min-width: 0; }
+.print-brand { margin: 0; font-size: 9pt; letter-spacing: 0.06em; text-transform: uppercase; color: black; }
+.print-title { margin: 2pt 0 0; font-size: 15pt; font-weight: 800; line-height: 1.2; color: black; }
+.print-class + .print-doc::before { content: " \2013  "; font-weight: 400; }
+.print-label { margin: 2pt 0 0; font-size: 10pt; color: black; }
+.print-stamp { margin: 0; font-size: 8pt; text-align: right; white-space: nowrap; color: black; }
+.print-only { display: block !important; }
+.ui-avatar { display: none !important; }
+
+/* Layout */
+.app-body { display: block; }
+.page-main,
+.app-body .page-main { max-width: none; padding: 0; }
+
+/* No glass, glow or shadow: flat boxes with thin dark borders */
+.glass,
+.ui-panel,
+.ui-kpi,
+.ui-table-wrap,
+.page-card-header,
+.stat-card,
+.table-container,
+.settings-card,
+.panel,
+.tracker-stats-banner,
+.inspector-panel,
+.student-card,
+.empty-state {
+  background: white !important;
+  color: black !important;
+  border: 0.75pt solid gray !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.table-container,
+.ui-table-wrap,
+.matrix-scroll { overflow: visible !important; }
+h1, h2, h3,
+.page-card-title,
+.kpi-label,
+.kpi-val-giant,
+.kpi-sub,
+.kpi-unit,
+.page-card-desc,
+.table-head-note,
+.muted,
+.form-hint { color: black !important; }
+a { color: black; text-decoration: none; }
+
+/* Keep rows, cards and headings whole across pages */
+table { width: calc(100% - 1pt); border-collapse: collapse; }
+thead { display: table-header-group; }
+tfoot { display: table-footer-group; }
+tr,
+td,
+th,
+.student-card,
+.stat-card,
+.ui-kpi,
+.settings-card,
+.panel,
+.print-header,
+h1, h2, h3 { break-inside: avoid; page-break-inside: avoid; }
+h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
+.matrix-table th,
+.matrix-table td,
+.ui-table th,
+.ui-table td,
+.ro-table th,
+.ro-table td { color: black !important; border-color: gray !important; background: white !important; }
+.matrix-scroll .matrix-table thead th:first-child,
+.matrix-scroll .matrix-table tbody th { position: static; box-shadow: none; }
+.matrix-scroll .matrix-table { min-width: 0; }
+
+/* Day Slip (Daily Tracker): header comes from the layout props; the slip replaces cards, toolbar and summary */
+.day-slip { margin: 0; }
+.day-slip-meta { display: flex; flex-wrap: wrap; gap: 4pt 24pt; margin: 0 0 10pt; }
+.day-slip-meta div { display: flex; gap: 6pt; }
+.day-slip-meta dt { font-weight: 700; }
+.day-slip-meta dt::after { content: ":"; }
+.day-slip-meta dd { margin: 0; }
+.day-slip-table { font-size: 10.5pt; }
+.day-slip-table th,
+.day-slip-table td { padding: 3pt 6pt; border: 0.5pt solid gray; text-align: left; color: black; background: white; }
+.day-slip-table thead th { font-weight: 700; border-bottom: 1pt solid black; }
+.day-slip-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.day-slip-table tbody th { font-weight: 600; }
+.day-slip-totals { display: flex; flex-wrap: wrap; gap: 4pt 20pt; margin: 10pt 0 0; padding-top: 6pt; border-top: 1pt solid black; break-inside: avoid; }

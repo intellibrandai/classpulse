@@ -1,0 +1,621 @@
+/* App shell: glass top navigation, brand, class switcher, tabs, live chips, theme switch, undo, today, account, footer.
+   Colours come from tokens.css only (glass surfaces and the .glass kit live in glass.css). */
+.app-body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+.app-body .page-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1580px;
+  padding: 24px;
+}
+
+/* Persistent top navigation bar (glass: only what is behind it is blurred) */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 8px 20px;
+  background: var(--glass-bg-strong);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+/* Brand: the official waveform mark (dark and light SVG, swapped by CSS) plus the wordmark */
+.brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+.brand-mark { display: inline-flex; flex: none; line-height: 0; }
+.brand-mark img { display: block; height: 42px; width: auto; }
+.brand-mark .brand-mark-dark { display: none; }
+[data-theme="dark"] .brand-mark .brand-mark-dark { display: block; }
+[data-theme="dark"] .brand-mark .brand-mark-light { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand-mark .brand-mark-dark { display: block; }
+  :root:not([data-theme="light"]) .brand-mark .brand-mark-light { display: none; }
+}
+.brand-mark-xl img { height: 120px; }
+.brand-mark-lg img { height: 56px; }
+.brand-text { display: flex; flex-direction: column; }
+.brand-title {
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.brand-subtitle {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Class switcher: a <details>/<summary> disclosure (see components/class-menu.blade.php and public/js/shell.js).
+   The WHOLE pill is the <summary>, so every pixel of it (eyebrow, dot, name, chevron) opens the menu. The panel is a list of real links. */
+.class-switch { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.class-menu { position: relative; min-width: 0; }
+.class-menu-summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 32px 0 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.class-menu-summary::-webkit-details-marker { display: none; }
+.class-menu-summary::marker { content: ''; }
+.class-menu-summary:hover,
+.class-menu[open] > .class-menu-summary { border-color: var(--border-violet); }
+.class-menu-summary:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}
+.pill-eyebrow {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.class-menu-summary .dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-emerald);
+  box-shadow: 0 0 8px var(--color-emerald);
+}
+.class-menu-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.class-menu-period { font-weight: 600; color: var(--text-muted); }
+.class-menu-caret {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+.class-menu[open] .class-menu-caret { transform: translateY(-50%) rotate(180deg); }
+.class-menu-panel {
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.class-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.class-menu-item:hover,
+.class-menu-item:focus-visible { background: var(--hover-tint); }
+.class-menu-item:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+.class-menu-item.is-current { background: var(--color-indigo-tint); }
+.class-menu-item.is-current:hover,
+.class-menu-item.is-current:focus-visible { background: linear-gradient(var(--hover-tint), var(--hover-tint)), var(--color-indigo-tint); }
+.class-menu-item-text { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
+.class-menu-item-code,
+.class-menu-item-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.class-menu-item-code { font-size: 13px; font-weight: 700; }
+.class-menu-item-sub { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.class-menu-check { flex: none; color: var(--text-accent); }
+@media (prefers-reduced-motion: reduce) {
+  .class-menu-summary,
+  .class-menu-caret { transition: none; }
+}
+
+/* Screen tabs */
+.screen-tabs {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 2px;
+  padding: 3px;
+  background: var(--input-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+.screen-tab-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.screen-tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--hover-tint);
+}
+.screen-tab-btn.active,
+.screen-tab-btn[aria-current="page"],
+.screen-tab-btn[aria-pressed="true"] {
+  background: var(--color-indigo-solid);
+  color: var(--on-accent);
+  box-shadow: var(--glow-primary);
+}
+
+/* Live chips: Enrolled / Present / Absent for today's school date */
+.header-chips {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 2px;
+  margin: 0;
+  padding: 3px 4px;
+  list-style: none;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+.header-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.header-chip strong { font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); }
+.header-chip-present strong { color: var(--text-success); }
+.header-chip-absent strong { color: var(--text-danger); }
+.header-chip + .header-chip { border-left: 1px solid var(--divider); }
+
+/* Right cluster */
+.nav-right {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 8px;
+  margin-left: auto;
+}
+.btn-icon {
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.btn-icon:hover {
+  color: var(--text-primary);
+  border-color: var(--border-violet);
+  box-shadow: var(--glow-primary);
+}
+.btn-icon:disabled,
+.btn-icon[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--glass-border);
+  box-shadow: none;
+}
+.btn-undo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 36px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.btn-undo:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-violet);
+  box-shadow: var(--glow-primary);
+}
+.btn-undo:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.logout-form { margin: 0; }
+
+/* Theme switch: two-state sun/moon segmented control. The active half follows <html data-theme> (no flash). */
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 2px;
+  padding: 3px;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+.theme-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.theme-switch-btn:hover { color: var(--text-primary); }
+.theme-switch-btn[data-theme-set="light"],
+[data-theme="dark"] .theme-switch-btn[data-theme-set="dark"] {
+  background: var(--primary-soft);
+  color: var(--text-accent);
+  box-shadow: var(--glow-primary);
+}
+[data-theme="dark"] .theme-switch-btn[data-theme-set="light"] {
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-switch-btn[data-theme-set="dark"] {
+    background: var(--primary-soft);
+    color: var(--text-accent);
+    box-shadow: var(--glow-primary);
+  }
+  :root:not([data-theme="light"]) .theme-switch-btn[data-theme-set="light"] {
+    background: transparent;
+    color: var(--text-secondary);
+    box-shadow: none;
+  }
+}
+[data-theme="light"] .theme-switch-btn[data-theme-set="dark"] {
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+/* Today block */
+.today-block { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; white-space: nowrap; }
+.today-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.today-date { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+
+/* Account avatar and menu */
+.account-menu { position: relative; flex: none; }
+.avatar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border-violet);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-indigo-solid), var(--color-indigo-solid-hover));
+  color: var(--on-accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: var(--glow-primary);
+}
+.avatar-btn[aria-expanded="true"] { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.account-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 120;
+  min-width: 220px;
+  max-width: min(280px, calc(100vw - 24px));
+  padding: 8px;
+  border-radius: var(--radius-md);
+}
+.account-email { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 8px 10px 10px; border-bottom: 1px solid var(--divider); }
+.account-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.account-address { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
+.account-popover .logout-form { margin-top: 6px; }
+.account-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.account-item:hover,
+.account-item:focus-visible { background: var(--hover-tint); }
+
+/* Status bar footer */
+.app-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 90;
+  height: 40px;
+  background: var(--glass-bg-strong);
+  border-top: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 24px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.footer-left,
+.footer-right { flex: 1; display: flex; align-items: center; }
+.footer-right { justify-content: flex-end; }
+.footer-center { text-align: center; white-space: nowrap; }
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-success);
+}
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+.sync-badge[data-state="saving"] { color: var(--text-warning); }
+.sync-badge[data-state="saving"] .sync-dot { animation: pulse 1s infinite; }
+.sync-badge[data-state="failed"],
+.sync-badge[data-state="expired"] { color: var(--text-danger); }
+.sync-action {
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.sync-badge a { color: inherit; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.2); }
+}
+
+/* Tab labels: full names while they fit, short names below */
+.tab-short { display: none; }
+.screen-tab-btn .tab-icon { flex: none; }
+
+/* ADAPTIVE HEADER. One row while everything fits, then two rows; nothing ever overlaps, clips or scrolls the page.
+   Break points were measured with scripts/dev/header-sweep.mjs (every width 320-2200 px, zoom 125% / 150%, see docs/header-sweep.md).
+   DOM order is the visual reading order at EVERY width, so Tab order = reading order:
+   logo > class selector > "+" > tabs > (chips, not focusable) > theme > Undo > account.
+   Single row (wider than 1100px), collapsing the lowest-priority pieces first:
+     >= 1900  full tab names, brand subtitle, "Active" eyebrow, chips, Undo label, Today
+     1620-1899  short tab names
+     1500-1619  Today collapses
+     1400-1499  brand subtitle wraps under the wordmark
+     1300-1399  eyebrow and Undo label collapse, tabs tighten
+     1101-1299  chips collapse
+   Two rows (1100px and below), a CSS grid: row 1 = logo + class selector + "+" (+ chips), row 2 = the four tabs (evenly spread) then theme, Undo, (Today), account.
+   The grid keeps the DOM order of the focusable controls (left, tabs, right), so no `order` is needed. */
+.class-menu-header .class-menu-name { max-width: 120px; }
+
+@media (max-width: 1899px) {
+  .top-nav .tab-full { display: none; }
+  .top-nav .tab-short { display: inline; }
+}
+@media (max-width: 1619px) {
+  .today-block { display: none; }
+}
+@media (max-width: 1499px) {
+  .brand-subtitle { max-width: 150px; white-space: normal; line-height: 1.25; }
+  .brand-cluster { gap: 10px; }
+}
+@media (max-width: 1399px) {
+  .pill-eyebrow { display: none; }
+  .btn-undo { width: 36px; padding: 0; justify-content: center; }
+  .btn-undo .btn-label { display: none; }
+  .screen-tab-btn { padding: 7px 9px; gap: 5px; }
+  .header-chip { padding: 4px 6px; }
+}
+@media (max-width: 1299px) {
+  .header-chips { display: none; }
+}
+
+@media (max-width: 1100px) {
+  .top-nav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "left left" "tabs right";
+    align-items: center;
+    gap: 8px 10px;
+    padding: 8px 16px;
+  }
+  .top-nav .nav-left { grid-area: left; min-width: 0; }
+  .top-nav .screen-tabs { grid-area: tabs; min-width: 0; }
+  .top-nav .nav-right { grid-area: right; margin-left: 0; }
+  .top-nav .header-chips { grid-area: chips; justify-self: end; display: flex; }
+  .class-switch { flex: 0 1 460px; }
+  .class-switch .class-menu { flex: 1 1 auto; }
+  .class-menu-header .class-menu-name { max-width: none; }
+  .screen-tab-btn { flex: 1 1 0; justify-content: center; min-width: 0; min-height: 40px; padding: 7px 8px; }
+  .btn-undo { width: auto; padding: 0 12px; }
+  .btn-undo .btn-label { display: inline; }
+  .pill-eyebrow { display: inline; }
+  .brand-subtitle { max-width: none; white-space: nowrap; }
+  .footer-right { display: none; }
+  .footer-center { flex: 2; }
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  .today-block { display: flex; }
+}
+@media (max-width: 1100px) and (min-width: 600px) {
+  .top-nav { grid-template-areas: "left chips" "tabs right"; }
+}
+@media (max-width: 900px) {
+  .brand-subtitle { display: none; }
+  .pill-eyebrow { display: none; }
+}
+@media (max-width: 599px) {
+  .top-nav .header-chips { display: none; }
+}
+@media (max-width: 768px) {
+  /* Row 1: brand mark, class selector, "+". Row 2: four stacked tabs, then the theme toggle, Undo and the account avatar. */
+  .top-nav { position: static; padding: 8px 12px; gap: 6px 8px; }
+  .brand-text { display: none; }
+  .brand-mark img { height: 36px; }
+  .brand-cluster { min-height: 40px; }
+  .nav-left { gap: 8px; }
+  .class-menu-summary { padding: 0 30px 0 10px; min-height: 40px; }
+  .class-menu-summary .dot { display: none; }
+  /* The header is the positioning parent of the panel (its backdrop-filter makes it the containing block), so the panel
+     spans from the left gutter and can never run past the right edge of the phone. */
+  .class-menu-header { position: static; }
+  .class-menu-header .class-menu-panel { left: 12px; margin-top: 8px; top: auto; }
+  .nav-right { gap: 4px; }
+  .nav-right .btn-icon,
+  .nav-right .btn-undo,
+  .nav-right .avatar-btn { width: 40px; height: 40px; min-width: 40px; padding: 0; justify-content: center; }
+  .nav-right .btn-label { display: none; }
+  .class-add { width: 40px; height: 40px; }
+  /* Only the active half of the theme switch shows; tapping it flips the theme. */
+  .theme-switch { padding: 0; }
+  .theme-switch-btn { width: 40px; height: 40px; }
+  .theme-switch-btn[data-theme-set="light"] { display: none; }
+  .theme-switch-btn[data-theme-set="dark"] { display: none; }
+  [data-theme="dark"] .theme-switch-btn[data-theme-set="dark"] { display: inline-flex; }
+  [data-theme="light"] .theme-switch-btn[data-theme-set="light"] { display: inline-flex; }
+  :root:not([data-theme]) .theme-switch-btn[data-theme-set="light"] { display: inline-flex; }
+  .top-nav .screen-tabs { padding: 3px; gap: 2px; }
+  .top-nav .screen-tab-btn {
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 1px;
+    min-height: 44px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  .app-body .page-main { padding: 12px 12px 16px; }
+  .app-footer { padding: 0 12px; }
+  .footer-center { display: none; }
+  .footer-left { flex: 1; }
+}
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-switch-btn[data-theme-set="light"] { display: none; }
+  :root:not([data-theme]) .theme-switch-btn[data-theme-set="dark"] { display: inline-flex; }
+}
+@media (max-width: 420px) {
+  .top-nav { padding: 8px 10px; }
+  .top-nav .screen-tab-btn { font-size: 10px; letter-spacing: -0.01em; }
+  .nav-right { gap: 2px; }
+}
+@media (max-width: 359px) {
+  /* Too narrow for four readable labels beside three controls: the tabs keep their icons (the names stay in aria-label and title). */
+  .top-nav .screen-tab-btn .tab-short { display: none; }
+}
+a.account-item { text-decoration: none; }

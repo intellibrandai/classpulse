@@ -1,0 +1,7 @@
+{
+    "preset": "laravel",
+    "exclude": [
+        "blueprints",
+        "dist"
+    ]
+}
