@@ -1,6 +1,6 @@
 # ClassPulse
 
-ClassPulse is a private "digital participation clipboard" for a teacher in Ontario (school days, Monday to Friday, in the
+ClassPulse is a web application for tracking student participation and attendance, reviewing weekly and semester results, and managing class rosters.(school days, Monday to Friday, in the
 America/Toronto time zone). The teacher taps cards to record participation points per student per school day, then reviews
 a weekly matrix and semester analytics, prepares report-card comment drafts, and imports or exports class lists as CSV.
 It is a server-rendered Laravel + Blade application on MariaDB with hand-written CSS and JavaScript (no build step),
