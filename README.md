@@ -1,10 +1,13 @@
 # ClassPulse
 
-ClassPulse is a web application for tracking student participation and attendance, reviewing weekly and semester results, and managing class rosters.(school days, Monday to Friday, in the
-America/Toronto time zone). The teacher taps cards to record participation points per student per school day, then reviews
-a weekly matrix and semester analytics, prepares report-card comment drafts, and imports or exports class lists as CSV.
-It is a server-rendered Laravel + Blade application on MariaDB with hand-written CSS and JavaScript (no build step),
-developed and run locally with Docker, and packaged for shared PHP hosting.
+ClassPulse is a web application for tracking student participation and attendance, reviewing weekly and semester results, and managing class rosters.
+
+Participation is recorded per student per school day (Monday to Friday, America/Toronto time zone) by tapping cards. The
+application also prepares report-card comment drafts and imports or exports class lists as CSV. It is a server-rendered
+Laravel + Blade application on MariaDB with hand-written CSS and JavaScript (no build step), developed and verified locally
+with Docker and packaged for shared PHP hosting.
+
+**Deployment status.** The original application is deployed on Hostinger and is actively used by a teacher. This independent portfolio copy was verified locally and contains only fictitious demonstration data.
 
 > This repository is shown for portfolio and review purposes. It is **not open source**: all rights reserved, see
 > [License](#license). All data in the screenshots and seeds is fictitious.
@@ -85,7 +88,9 @@ Only features that exist in the code and are covered by tests or documented chec
 | Front end | Blade, hand-written CSS/JS, no bundler, no CDN, no remote fonts | `public/`, `resources/views/` |
 | Fonts | Plus Jakarta Sans, JetBrains Mono (self-hosted, SIL OFL 1.1) | `public/fonts/` |
 
-PHP, Composer, MariaDB and Node are **not** needed on the host: everything runs in Docker.
+For local development, Docker contains all the dependencies: PHP, Composer, MariaDB and the Node test image are **not** needed
+on the host. The Hostinger deployment does not use Docker: it runs on the hosting provider's own PHP and MariaDB, with the
+`vendor/` folder built beforehand and shipped inside the release package.
 
 ## Architecture
 
@@ -133,12 +138,12 @@ blueprints/         Historical build plan the project was generated from (kept f
 
 ## Getting started (local, Docker only)
 
-**Prerequisites:** Docker Desktop (or Docker Engine) with Compose v2, and git. Nothing else.
+**Prerequisites:** Docker Desktop (or Docker Engine) with Compose v2, and git. Nothing else: Docker provides PHP, Composer and MariaDB for local development only.
 
 ### Quick start
 
 ```bash
-git clone <this-repository-url> classpulse
+git clone https://github.com/intellibrandai/classpulse.git classpulse
 cd classpulse
 ./scripts/setup-local.sh --demo
 ```
@@ -150,7 +155,7 @@ prints a demo password **once**; copy it from the terminal. Then open http://loc
 ### Manual steps
 
 ```bash
-git clone <this-repository-url> classpulse
+git clone https://github.com/intellibrandai/classpulse.git classpulse
 cd classpulse
 cp .env.example .env
 docker compose up -d --build
@@ -218,8 +223,13 @@ the test gate.
 
 ## Deployment (Hostinger packaging)
 
-The target is Hostinger shared PHP hosting with the application folder beside `public_html`. Nothing is deployed from
-this repository automatically; the owner publishes by hand.
+The original application runs on Hostinger shared PHP hosting, with the application folder beside `public_html`, using the
+hosting's own PHP and MariaDB (no Docker there). Nothing is deployed from this repository automatically; the owner
+publishes by hand. The production site, its database and its configuration are not part of this repository.
+
+**What was verified where.** The automated checks described in this README (tests, the fresh-clone run and the release
+verification) were run locally, against fictitious data. They do not cover the live site: that is known only from its
+production use by a teacher, not from tests in this repository.
 
 ```bash
 ./scripts/package-release.sh && ./scripts/verify-release.sh      # builds dist/ and checks it
@@ -232,7 +242,7 @@ update kit for an already-installed site (`package-update.sh`, `verify-update.sh
 [`hostinger-update.md`](docs/hostinger-update.md), [`hosting-requirements.md`](docs/hosting-requirements.md) (English),
 [`backups.md`](docs/backups.md), [`access-and-recovery.md`](docs/access-and-recovery.md). The original Spanish README is
 [`docs/es/README.es.md`](docs/es/README.es.md). Items that depend on a real hosting plan are marked "to verify" there:
-the packages were verified locally, not on a live host.
+the packages and guides were verified locally by the scripts above, and hosting-specific details are marked "to verify" because the scripts cannot check them on a live host.
 
 ## Current limitations
 
@@ -244,8 +254,8 @@ the packages were verified locally, not on a live host.
 - Only Chrome-family behaviour was verified in a real browser (headless Chrome). Safari, Firefox, iOS and Android were
   not tested; see [`docs/browser-compatibility.md`](docs/browser-compatibility.md) for the static analysis only.
 - Print layouts were verified as PDFs from Chrome only, not on a physical printer.
-- English user interface only. Never tested with 100+ students, a screen reader or a real touch device.
-- Local development is Docker-only; the packaged hosting build has not been tested on a live host.
+- English user interface only. The verification in this repository did not include 100+ students, a screen reader or a real touch device.
+- Local development is Docker-only. The checks in this repository were run locally and do not cover the live Hostinger site, which is not part of the repository.
 
 ## My role and how this was built
 
@@ -259,7 +269,7 @@ Most of the code was written by AI coding agents under my direction. Claude Code
 planned the build from a validated blueprint (kept in `blueprints/`), implemented the tasks, wrote the tests, ran the
 verification tools and produced the release packages, in sessions I supervised. The history of the original private
 project carried commits co-authored by Claude where indicated; the history of this repository starts fresh with a single
-commit. OpenAI Codex was also used as a complementary coding assistant in the project workflow.
+commit. OpenAI Codex supported requirements clarification, review of screenshots and implementation reports, preparation of instructions for Claude Code, deployment guidance, and user documentation.
 
 The AI-generated code was verified by automated tests and tooling plus my manual testing. I do not claim to have reviewed
 every line by hand. No AI or LLM is used by the application at runtime.
